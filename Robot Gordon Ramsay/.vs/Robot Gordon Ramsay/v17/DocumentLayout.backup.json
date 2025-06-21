@@ -1,0 +1,137 @@
+{
+  "Version": 1,
+  "WorkspaceRootPath": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\",
+  "Documents": [
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\weaponmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\weaponmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\weaponcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\weaponcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|c:\\users\\user\\onedrive\\documents\\unity projects\\robot gordon ramsay\\assets\\scripts\\weapons\\pickupableweapon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\pickupableweapon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\assets\\scripts\\playerscripts\\playermovement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\playerscripts\\playermovement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|c:\\users\\user\\onedrive\\documents\\unity projects\\robot gordon ramsay\\assets\\scripts\\weapons\\debugpickupsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\debugpickupsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\weaponsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\weaponsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\health.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\health.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    }
+  ],
+  "DocumentGroupContainers": [
+    {
+      "Orientation": 0,
+      "VerticalTabListWidth": 256,
+      "DocumentGroups": [
+        {
+          "DockedWidth": 200,
+          "SelectedChildIndex": 2,
+          "Children": [
+            {
+              "$type": "Document",
+              "DocumentIndex": 4,
+              "Title": "DebugPickupSystem.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
+              "ViewState": "AgIAAJsAAAAAAAAAAAAiwMkAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-21T00:25:41.311Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 3,
+              "Title": "PlayerMovement.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\PlayerScripts\\PlayerMovement.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\PlayerScripts\\PlayerMovement.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\PlayerScripts\\PlayerMovement.cs",
+              "RelativeToolTip": "Assets\\Scripts\\PlayerScripts\\PlayerMovement.cs",
+              "ViewState": "AgIAABMBAAAAAAAAAAAAwD0BAAAJAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-20T23:52:54.94Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 0,
+              "Title": "WeaponManager.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\WeaponManager.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\WeaponManager.cs",
+              "ViewState": "AgIAALoAAAAAAAAAAAA1wGoDAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-20T23:48:17.41Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "PickupableWeapon.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\PickupableWeapon.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\PickupableWeapon.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\PickupableWeapon.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\PickupableWeapon.cs",
+              "ViewState": "AgIAAIwBAAAAAAAAAAAiwLoBAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-20T23:48:04.042Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "Health.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\Health.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\Health.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\Health.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\Health.cs",
+              "ViewState": "AgIAADABAAAAAAAAAAAiwF4BAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-20T23:47:52.668Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 1,
+              "Title": "WeaponController.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponController.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\WeaponController.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponController.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\WeaponController.cs",
+              "ViewState": "AgIAAMgCAAAAAAAAAAAiwPYCAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-20T23:46:11.036Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 5,
+              "Title": "WeaponSystem.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponSystem.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\WeaponSystem.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\unity projects\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponSystem.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\WeaponSystem.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAAHoAAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-20T23:46:00.064Z"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
