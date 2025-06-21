@@ -1,9 +1,10 @@
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Component for weapons that can be picked up from the ground
-/// Attach this to weapon prefabs that should be collectible
+/// Enhanced with Minecraft-style physics-to-floating transition
 /// </summary>
 public class PickupableWeapon : MonoBehaviour
 {
@@ -29,7 +30,16 @@ public class PickupableWeapon : MonoBehaviour
     [Tooltip("Pickup effect to spawn when collected")]
     public GameObject pickupEffect;
 
-    [Tooltip("Should the weapon bob up and down?")]
+    [Header("Minecraft-Style Physics")]
+    [Tooltip("Time for physics to settle before floating starts")]
+    [Range(1f, 5f)]
+    public float physicsSettleTime = 2f;
+
+    [Tooltip("Delay after physics settle before floating begins")]
+    [Range(0f, 1f)]
+    public float floatStartDelay = 0.3f;
+
+    [Tooltip("Should the weapon bob up and down after physics settle?")]
     public bool enableBobbing = true;
 
     [Tooltip("Bobbing speed")]
@@ -40,6 +50,16 @@ public class PickupableWeapon : MonoBehaviour
     [Range(0.1f, 1f)]
     public float bobbingHeight = 0.3f;
 
+    [Header("Physics Layers")]
+    [Tooltip("Physics layer for dropped weapons (should ignore Player layer)")]
+    public string droppedWeaponLayer = "DroppedWeapons";
+
+    [Tooltip("Should weapon colliders be disabled during floating? (Prevents interaction with environment while floating)")]
+    public bool disableCollidersWhenFloating = false;
+
+    [Tooltip("Directly ignore collisions with player colliders (backup method)")]
+    public bool forceIgnorePlayerCollisions = true;
+
     [Header("Rotation")]
     [Tooltip("Should the weapon rotate slowly?")]
     public bool enableRotation = true;
@@ -48,9 +68,9 @@ public class PickupableWeapon : MonoBehaviour
     [Range(10f, 180f)]
     public float rotationSpeed = 45f;
 
-    // [Header("Audio")] - COMMENTED OUT FOR NOW
-    // [Tooltip("Sound when picked up")]
-    // public AudioClip pickupSound;
+    [Header("Drop Input (New Input System)")]
+    [Tooltip("Input Action Asset reference for drop action")]
+    public InputActionReference dropActionReference;
 
     [Header("Events")]
     [Tooltip("Called when weapon is picked up")]
@@ -62,33 +82,41 @@ public class PickupableWeapon : MonoBehaviour
     [Tooltip("Called when player exits pickup range")]
     public UnityEvent OnPlayerExitRange;
 
+    [Tooltip("Called when weapon is dropped")]
+    public UnityEvent OnWeaponDropped;
+
     // Private variables
     private Vector3 startPosition;
     private Renderer weaponRenderer;
     private Material originalMaterial;
     private InteractableComponent interactableComponent;
-    // private AudioSource audioSource; - COMMENTED OUT FOR NOW
-    // Removed playerInRange as it's not being used
+
+    // Physics and floating state
+    private Rigidbody rb;
+    private Collider[] weaponColliders;
+    private bool isPhysicsActive = true;
+    private bool isFloating = false;
+    private float dropTime;
+    private Vector3 settledPosition;
+
+    // Input handling
+    private InputAction dropAction;
+    private bool playerInRange = false;
+    private WeaponManager playerWeaponManager;
 
     #region Unity Lifecycle
 
     void Awake()
     {
-        // Get renderer for highlight effect
+        // Get components
         weaponRenderer = GetComponent<Renderer>();
+        rb = GetComponent<Rigidbody>();
+        weaponColliders = GetComponentsInChildren<Collider>();
+
         if (weaponRenderer != null)
         {
             originalMaterial = weaponRenderer.material;
         }
-
-        // Setup audio - COMMENTED OUT FOR NOW
-        // audioSource = GetComponent<AudioSource>();
-        // if (audioSource == null)
-        // {
-        //     audioSource = gameObject.AddComponent<AudioSource>();
-        //     audioSource.playOnAwake = false;
-        //     audioSource.spatialBlend = 1f; // 3D sound
-        // }
 
         // Get or add InteractableComponent
         interactableComponent = GetComponent<InteractableComponent>();
@@ -97,11 +125,20 @@ public class PickupableWeapon : MonoBehaviour
             interactableComponent = gameObject.AddComponent<InteractableComponent>();
             SetupInteractableComponent();
         }
+
+        // Setup New Input System for dropping
+        SetupDropInput();
+
+        // Setup physics layers for dropped weapon
+        SetupPhysicsLayers();
     }
 
     void Start()
     {
-        // Store starting position for bobbing
+        // Record drop time for physics settling
+        dropTime = Time.time;
+
+        // Store starting position for bobbing (will be updated when physics settle)
         startPosition = transform.position;
 
         // Validate setup
@@ -118,15 +155,161 @@ public class PickupableWeapon : MonoBehaviour
 
         if (reserveAmmo == 0 && weaponData != null)
         {
-            reserveAmmo = weaponData.maxAmmo / 2; // Start with half max ammo
+            reserveAmmo = weaponData.maxAmmo / 2;
         }
 
-        // Setup interaction events safely
+        // Setup interaction events
+        SetupInteractionEvents();
+
+        // Schedule physics-to-floating transition
+        Invoke(nameof(BeginFloatingTransition), physicsSettleTime);
+    }
+
+    void Update()
+    {
+        if (!canBePickedUp)
+            return;
+
+        // Handle floating animation (only when not using physics)
+        if (!isPhysicsActive && isFloating && enableBobbing)
+        {
+            UpdateBobbing();
+        }
+
+        // Handle rotation animation (always active)
+        if (enableRotation)
+        {
+            UpdateRotation();
+        }
+
+        // Handle drop input when player is nearby
+        if (playerInRange && dropAction != null && dropAction.WasPressedThisFrame())
+        {
+            HandleDropInput();
+        }
+    }
+
+    void OnDestroy()
+    {
+        // Clean up input
+        if (dropAction != null)
+        {
+            dropAction.Disable();
+            dropAction.Dispose();
+        }
+
+        // Clean up event subscriptions
+        CleanupInteractionEvents();
+    }
+
+    #endregion
+
+    #region Setup Methods
+
+    private void SetupDropInput()
+    {
+        // Setup drop action from InputActionReference or create fallback
+        if (dropActionReference != null)
+        {
+            dropAction = dropActionReference.action;
+        }
+        else
+        {
+            // Fallback: create drop action manually
+            dropAction = new InputAction("Drop", InputActionType.Button, "<Keyboard>/q");
+        }
+
+        if (dropAction != null)
+        {
+            dropAction.Enable();
+        }
+    }
+
+    private void SetupPhysicsLayers()
+    {
+        // Set weapon to DroppedWeapons layer to ignore player collisions
+        int droppedLayer = LayerMask.NameToLayer(droppedWeaponLayer);
+
+        if (droppedLayer == -1)
+        {
+            Debug.LogWarning($"Layer '{droppedWeaponLayer}' doesn't exist! Please create it in Project Settings > Tags and Layers. Using Default layer instead.");
+            droppedLayer = 0; // Default layer
+        }
+
+        // Set layer for this object and all children
+        SetLayerRecursively(gameObject, droppedLayer);
+
+        // BACKUP METHOD: Directly ignore collisions with player colliders
+        if (forceIgnorePlayerCollisions)
+        {
+            StartCoroutine(IgnorePlayerCollisionsCoroutine());
+        }
+
+        Debug.Log($"Set weapon {gameObject.name} to layer: {droppedWeaponLayer} (ID: {droppedLayer})");
+    }
+
+    private void SetLayerRecursively(GameObject obj, int layer)
+    {
+        obj.layer = layer;
+
+        foreach (Transform child in obj.transform)
+        {
+            SetLayerRecursively(child.gameObject, layer);
+        }
+    }
+
+    /// <summary>
+    /// Coroutine to find and ignore all player colliders (backup method)
+    /// </summary>
+    private System.Collections.IEnumerator IgnorePlayerCollisionsCoroutine()
+    {
+        yield return new WaitForSeconds(0.1f); // Wait for everything to initialize
+
+        // Refresh weapon colliders in case they changed
+        weaponColliders = GetComponentsInChildren<Collider>();
+
+        // Find all player colliders
+        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+
+        int ignoredCollisions = 0;
+
+        foreach (GameObject player in players)
+        {
+            Collider[] playerColliders = player.GetComponentsInChildren<Collider>();
+
+            foreach (Collider playerCol in playerColliders)
+            {
+                foreach (Collider weaponCol in weaponColliders)
+                {
+                    if (playerCol != null && weaponCol != null)
+                    {
+                        Physics.IgnoreCollision(playerCol, weaponCol, true);
+                        ignoredCollisions++;
+                        Debug.Log($"Ignored collision between {weaponCol.name} and player {playerCol.name}");
+                    }
+                }
+            }
+        }
+
+        Debug.Log($"Set up {ignoredCollisions} collision ignores for weapon {gameObject.name}");
+    }
+
+    private void SetupInteractableComponent()
+    {
+        if (interactableComponent != null && weaponData != null)
+        {
+            interactableComponent.interactionText = $"Press E to pickup {weaponData.weaponName}";
+            interactableComponent.interactionRange = 3f;
+            interactableComponent.highlightColor = Color.cyan;
+        }
+    }
+
+    private void SetupInteractionEvents()
+    {
         if (interactableComponent != null)
         {
             try
             {
-                // Check if the component is valid before subscribing
                 if (interactableComponent.OnInteractionComplete != null)
                     interactableComponent.OnInteractionComplete.AddListener(OnPickupInteraction);
 
@@ -143,38 +326,14 @@ public class PickupableWeapon : MonoBehaviour
                 Debug.LogError($"Error setting up PickupableWeapon events: {e.Message}", this);
             }
         }
-        else
-        {
-            Debug.LogWarning($"PickupableWeapon on {gameObject.name} has no InteractableComponent!", this);
-        }
     }
 
-    void Update()
+    private void CleanupInteractionEvents()
     {
-        if (!canBePickedUp)
-            return;
-
-        // Handle bobbing animation
-        if (enableBobbing)
-        {
-            UpdateBobbing();
-        }
-
-        // Handle rotation animation
-        if (enableRotation)
-        {
-            UpdateRotation();
-        }
-    }
-
-    void OnDestroy()
-    {
-        // Clean up event subscriptions safely
         if (interactableComponent != null)
         {
             try
             {
-                // Check if events exist before unsubscribing
                 if (interactableComponent.OnInteractionComplete != null)
                     interactableComponent.OnInteractionComplete.RemoveListener(OnPickupInteraction);
 
@@ -187,25 +346,110 @@ public class PickupableWeapon : MonoBehaviour
             catch (System.Exception)
             {
                 // Silently handle cleanup errors during destruction
-                // Don't log errors during destruction as objects may be partially destroyed
             }
         }
     }
 
     #endregion
 
-    #region Setup Methods
+    #region Minecraft-Style Physics Transition
 
     /// <summary>
-    /// Setup the InteractableComponent with appropriate settings
+    /// Begin transition from physics to floating (Minecraft style)
     /// </summary>
-    private void SetupInteractableComponent()
+    private void BeginFloatingTransition()
     {
-        if (interactableComponent != null && weaponData != null)
+        if (this == null || !canBePickedUp) return;
+
+        Debug.Log($"Weapon {weaponData?.weaponName} beginning floating transition");
+
+        // Disable physics
+        if (rb != null)
         {
-            interactableComponent.interactionText = $"Press E to pickup {weaponData.weaponName}";
-            interactableComponent.interactionRange = 3f;
-            interactableComponent.highlightColor = Color.cyan;
+            rb.isKinematic = true;
+            rb.linearVelocity = Vector3.zero;
+            rb.angularVelocity = Vector3.zero;
+        }
+
+        // Store settled position as new baseline for floating
+        settledPosition = transform.position;
+        startPosition = settledPosition;
+        isPhysicsActive = false;
+
+        // Start floating after delay
+        Invoke(nameof(StartFloating), floatStartDelay);
+    }
+
+    /// <summary>
+    /// Start the floating animation
+    /// </summary>
+    private void StartFloating()
+    {
+        if (this == null || !canBePickedUp) return;
+
+        isFloating = true;
+
+        // Optionally disable colliders during floating to prevent environmental interference
+        if (disableCollidersWhenFloating)
+        {
+            SetCollidersEnabled(false);
+            Debug.Log($"Disabled colliders for floating weapon {weaponData?.weaponName}");
+        }
+
+        Debug.Log($"Weapon {weaponData?.weaponName} started floating");
+    }
+
+    /// <summary>
+    /// Enable or disable all weapon colliders
+    /// </summary>
+    private void SetCollidersEnabled(bool enabled)
+    {
+        foreach (Collider col in weaponColliders)
+        {
+            if (col != null)
+            {
+                col.enabled = enabled;
+            }
+        }
+    }
+
+    #endregion
+
+    #region Animation Methods
+
+    /// <summary>
+    /// Update bobbing animation (Minecraft-style floating) - Only floats upward to prevent floor clipping
+    /// </summary>
+    private void UpdateBobbing()
+    {
+        // Use Mathf.Abs to make sine wave only positive (0 to 1) so it only floats upward
+        float yOffset = Mathf.Abs(Mathf.Sin(Time.time * bobbingSpeed)) * bobbingHeight;
+        float newY = startPosition.y + yOffset;
+        transform.position = new Vector3(startPosition.x, newY, startPosition.z);
+    }
+
+    /// <summary>
+    /// Update rotation animation
+    /// </summary>
+    private void UpdateRotation()
+    {
+        transform.Rotate(Vector3.up * rotationSpeed * Time.deltaTime);
+    }
+
+    #endregion
+
+    #region Input Handling
+
+    /// <summary>
+    /// Handle drop input (Q key)
+    /// </summary>
+    private void HandleDropInput()
+    {
+        if (playerWeaponManager != null)
+        {
+            // Tell the weapon manager to drop current weapon
+            playerWeaponManager.DropCurrentWeapon();
+            Debug.Log("Drop weapon requested via Q key");
         }
     }
 
@@ -227,19 +471,18 @@ public class PickupableWeapon : MonoBehaviour
         }
 
         // Find the player's weapon manager
-        WeaponManager playerWeaponManager = FindPlayerWeaponManager();
+        WeaponManager weaponManager = FindPlayerWeaponManager();
 
-        if (playerWeaponManager != null)
+        if (weaponManager != null)
         {
             Debug.Log("Found WeaponManager, attempting pickup...");
+
             // Try to pickup the weapon
-            if (playerWeaponManager.TryPickupWeapon(this))
+            bool pickupSuccessful = weaponManager.TryPickupWeapon(this);
+
+            if (!pickupSuccessful)
             {
-                PerformPickup();
-            }
-            else
-            {
-                Debug.Log("TryPickupWeapon returned false");
+                Debug.Log("Pickup failed - weapon remains on ground");
             }
         }
         else
@@ -256,6 +499,9 @@ public class PickupableWeapon : MonoBehaviour
         if (!canBePickedUp)
             return;
 
+        playerInRange = true;
+        playerWeaponManager = FindPlayerWeaponManager();
+
         ApplyHighlight(true);
         OnPlayerEnterRange?.Invoke();
 
@@ -267,6 +513,9 @@ public class PickupableWeapon : MonoBehaviour
     /// </summary>
     private void OnPlayerExitPickupRange()
     {
+        playerInRange = false;
+        playerWeaponManager = null;
+
         ApplyHighlight(false);
         OnPlayerExitRange?.Invoke();
 
@@ -278,10 +527,43 @@ public class PickupableWeapon : MonoBehaviour
     #region Public Methods
 
     /// <summary>
+    /// Initialize weapon as freshly dropped (call this when dropping weapons)
+    /// </summary>
+    public void InitializeAsDropped(Vector3 dropVelocity = default)
+    {
+        dropTime = Time.time;
+        isPhysicsActive = true;
+        isFloating = false;
+
+        // Apply drop velocity if provided
+        if (rb != null && dropVelocity != Vector3.zero)
+        {
+            rb.isKinematic = false;
+            rb.AddForce(dropVelocity, ForceMode.Impulse);
+        }
+
+        // IMPORTANT: Re-setup physics layers and collision ignoring for newly dropped weapon
+        SetupPhysicsLayers();
+
+        // Schedule physics-to-floating transition
+        CancelInvoke(); // Cancel any existing invokes
+        Invoke(nameof(BeginFloatingTransition), physicsSettleTime);
+
+        OnWeaponDropped?.Invoke();
+        Debug.Log($"Weapon {weaponData?.weaponName} dropped with physics and collision ignoring re-setup");
+    }
+
+    /// <summary>
     /// Perform the pickup (called by WeaponManager)
     /// </summary>
     public void PerformPickup()
     {
+        // Re-enable colliders if they were disabled
+        if (disableCollidersWhenFloating && isFloating)
+        {
+            SetCollidersEnabled(true);
+        }
+
         // Trigger pickup effects
         TriggerPickupEffects();
 
@@ -299,11 +581,7 @@ public class PickupableWeapon : MonoBehaviour
         }
 
         // Disable colliders to prevent further interaction
-        Collider[] colliders = GetComponentsInChildren<Collider>();
-        foreach (Collider col in colliders)
-        {
-            col.enabled = false;
-        }
+        SetCollidersEnabled(false);
 
         // Destroy immediately
         Destroy(gameObject);
@@ -340,23 +618,6 @@ public class PickupableWeapon : MonoBehaviour
     #region Private Methods
 
     /// <summary>
-    /// Update bobbing animation
-    /// </summary>
-    private void UpdateBobbing()
-    {
-        float newY = startPosition.y + Mathf.Sin(Time.time * bobbingSpeed) * bobbingHeight;
-        transform.position = new Vector3(startPosition.x, newY, startPosition.z);
-    }
-
-    /// <summary>
-    /// Update rotation animation
-    /// </summary>
-    private void UpdateRotation()
-    {
-        transform.Rotate(Vector3.up * rotationSpeed * Time.deltaTime);
-    }
-
-    /// <summary>
     /// Apply or remove highlight effect
     /// </summary>
     private void ApplyHighlight(bool highlight)
@@ -385,9 +646,6 @@ public class PickupableWeapon : MonoBehaviour
             GameObject effect = Instantiate(pickupEffect, transform.position, Quaternion.identity);
             Destroy(effect, 2f);
         }
-
-        // Play pickup sound - COMMENTED OUT FOR NOW
-        // PlaySound(pickupSound);
     }
 
     /// <summary>
@@ -408,17 +666,6 @@ public class PickupableWeapon : MonoBehaviour
         return FindObjectOfType<WeaponManager>();
     }
 
-    // /// <summary>
-    // /// Play pickup sound - COMMENTED OUT FOR NOW
-    // /// </summary>
-    // private void PlaySound(AudioClip clip)
-    // {
-    //     if (clip != null && audioSource != null)
-    //     {
-    //         audioSource.PlayOneShot(clip);
-    //     }
-    // }
-
     #endregion
 
     #region Debug Gizmos
@@ -433,12 +680,19 @@ public class PickupableWeapon : MonoBehaviour
         }
 
         // Draw bobbing path
-        if (enableBobbing && Application.isPlaying)
+        if (enableBobbing && Application.isPlaying && isFloating)
         {
             Gizmos.color = Color.yellow;
             Vector3 minPos = new Vector3(startPosition.x, startPosition.y - bobbingHeight, startPosition.z);
             Vector3 maxPos = new Vector3(startPosition.x, startPosition.y + bobbingHeight, startPosition.z);
             Gizmos.DrawLine(minPos, maxPos);
+        }
+
+        // Show physics state
+        if (Application.isPlaying)
+        {
+            Gizmos.color = isPhysicsActive ? Color.red : (isFloating ? Color.blue : Color.yellow);
+            Gizmos.DrawSphere(transform.position, 0.1f);
         }
     }
 

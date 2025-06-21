@@ -61,7 +61,6 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.1.7f1\Editor\Data\Tools\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Assets\Scripts\Weapons\WeaponSystem.cs" />
     <Compile Include="Assets\Scripts\Debuging\ParticleDebugTest.cs" />
     <Compile Include="Assets\Scripts\Weapons\WeaponController.cs" />
     <Compile Include="Assets\Scripts\Interactable Objects\CookingApplianceController.cs" />
@@ -80,7 +79,9 @@
     <Compile Include="Assets\Scripts\Cooking\Stove\CookingRecipe.cs" />
     <Compile Include="Assets\Scripts\Cooking\Stove\CookingState.cs" />
     <Compile Include="Assets\Scripts\UIScripts\Crosshair.cs" />
+    <Compile Include="Assets\Scripts\Weapons\MeleeController.cs" />
     <Compile Include="Assets\Scripts\Interactable Objects\GrabbableObject.cs" />
+    <Compile Include="Assets\Scripts\Weapons\WeaponSystem.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Assets\TextMesh Pro\Shaders\TMPro.cginc" />

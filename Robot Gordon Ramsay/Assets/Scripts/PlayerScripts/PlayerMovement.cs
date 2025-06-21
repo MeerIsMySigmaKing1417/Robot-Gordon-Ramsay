@@ -189,6 +189,12 @@ public class Movement : MonoBehaviour
     [Tooltip("Interaction Manager component")]
     public InteractionManager interactionManager;
 
+    [HideInInspector] public bool isBeingKnockedBack = false;
+    [HideInInspector] public bool recentKnockback = false;
+    [HideInInspector] public float knockbackEndTime = 0f;
+    [HideInInspector] public bool allowVerticalOverride = true;
+    [HideInInspector] public bool hasUsedAirBoost = false; // Track if boost was used in air
+
     // Input system and movement variables
     private PlayerInputActions inputActions;
     private Rigidbody rb;
@@ -202,6 +208,7 @@ public class Movement : MonoBehaviour
     // Physics and state variables
     private bool grounded;
     private Vector3 originalCamPos;
+    private Vector3 targetCrouchPosition = Vector3.zero;
     private float xRotation = 0f;
     private bool isCrouching = false;
     private Vector3 targetScale;
@@ -316,12 +323,24 @@ public class Movement : MonoBehaviour
                 Debug.Log("Added InteractionManager to player");
             }
         }
+
+        if (playerCam != null)
+        {
+            originalCamPos = playerCam.localPosition;
+        }
     }
 
     private void Update()
     {
         // Check if grounded
         grounded = Physics.CheckSphere(groundChecker.position, groundDistance, groundMask);
+
+        // Reset air boost when landing
+        if (grounded && hasUsedAirBoost)
+        {
+            hasUsedAirBoost = false;
+            Debug.Log("Landed - air boost reset");
+        }
 
         // Update ground normal for slope detection
         UpdateGroundNormal();
@@ -439,7 +458,23 @@ public class Movement : MonoBehaviour
         // Calculate desired velocity
         Vector3 desiredVelocity = moveDir.normalized * currentMaxSpeed;
 
-        // Apply movement forces
+        // KNOCKBACK INTEGRATION: Reduce movement forces during/after knockback
+        bool isInKnockbackPeriod = recentKnockback && Time.time < knockbackEndTime;
+
+        if (isInKnockbackPeriod)
+        {
+            // During knockback period: only allow air control, no ground-based forces
+            if (!grounded && moveInput.magnitude > 0.1f)
+            {
+                // Light air control - work WITH existing velocity instead of against it
+                Vector3 airControlForce = desiredVelocity * airControl * 0.3f; // Much gentler
+                rb.AddForce(new Vector3(airControlForce.x, 0f, airControlForce.z), ForceMode.Force);
+            }
+            // Don't apply ground forces during knockback period
+            return;
+        }
+
+        // NORMAL MOVEMENT: Apply movement forces when not in knockback
         if (moveInput.magnitude > 0.1f)
         {
             ApplyMovementForces(horizontalVelocity, desiredVelocity, currentSpeed);
@@ -454,6 +489,12 @@ public class Movement : MonoBehaviour
 
         // Handle slopes
         HandleSlopeMovement();
+    }
+
+    public void OnKnockbackApplied(float duration = 0.6f)
+    {
+        knockbackEndTime = Time.time + duration;
+        Debug.Log($"Knockback applied - Y velocity override disabled for {duration} seconds");
     }
 
     /// <summary>
@@ -615,11 +656,23 @@ public class Movement : MonoBehaviour
             verticalVelocity += gravity * Time.deltaTime;
         }
 
-        Vector3 vel = rb.linearVelocity;
-        vel.y = verticalVelocity;
-        rb.linearVelocity = vel;
-    }
+        // SIMPLE FIX: Only override Y velocity if not in knockback period
+        bool knockbackActive = Time.time < knockbackEndTime;
 
+        if (!knockbackActive)
+        {
+            // Normal behavior
+            Vector3 vel = rb.linearVelocity;
+            vel.y = verticalVelocity;
+            rb.linearVelocity = vel;
+        }
+        else
+        {
+            // During knockback - sync our verticalVelocity with actual rigidbody
+            // This prevents jarring transitions when knockback ends
+            verticalVelocity = rb.linearVelocity.y;
+        }
+    }
     /// <summary>
     /// Handle crouch input
     /// </summary>
@@ -668,6 +721,16 @@ public class Movement : MonoBehaviour
             }
         }
     }
+
+    private void OnTriggerEnter(Collider other)
+    {
+        // Reset air boost when touching ground
+        if (grounded)
+        {
+            hasUsedAirBoost = false;
+        }
+    }
+
 
     #endregion
 
@@ -1035,32 +1098,98 @@ public class Movement : MonoBehaviour
 
     #endregion
 
-    #region Crouch System
+    #region Crouch System - FIXED TO USE POSITION INSTEAD OF SCALE
 
     /// <summary>
-    /// Start crouching
+    /// Start crouching - FIXED: Use position instead of scale
     /// </summary>
     private void StartCrouch()
     {
         isCrouching = true;
-        targetScale = new Vector3(1f, crouchHeight, 1f);
+
+        // Use position-based crouching instead of scale to avoid weapon squishing
+        Vector3 currentPos = transform.position;
+        float heightDifference = (standHeight - crouchHeight) * 0.5f;
+
+        // Lower the player by moving them down
+        targetCrouchPosition = currentPos - Vector3.up * heightDifference;
     }
 
     /// <summary>
-    /// Stop crouching
+    /// Stop crouching - FIXED: Use position instead of scale
     /// </summary>
     private void StopCrouch()
     {
+        if (!CanStandUp())
+        {
+            // Can't stand up due to ceiling - stay crouched
+            return;
+        }
+
         isCrouching = false;
-        targetScale = new Vector3(1f, standHeight, 1f);
+
+        // Return to standing position
+        Vector3 currentPos = transform.position;
+        float heightDifference = (standHeight - crouchHeight) * 0.5f;
+
+        // Raise the player by moving them up
+        targetCrouchPosition = currentPos + Vector3.up * heightDifference;
     }
 
     /// <summary>
-    /// Smooth crouch transition
+    /// Check if player can stand up (no ceiling blocking)
+    /// </summary>
+    private bool CanStandUp()
+    {
+        // Check for ceiling above player
+        float checkHeight = standHeight - crouchHeight + 0.1f; // Add small buffer
+        Vector3 checkPosition = transform.position + Vector3.up * checkHeight;
+
+        return !Physics.CheckSphere(checkPosition, 0.3f, groundMask);
+    }
+
+    /// <summary>
+    /// Smooth crouch transition - FIXED: Use position instead of scale
     /// </summary>
     private void SmoothCrouchTransition()
     {
-        transform.localScale = Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * crouchTransitionSpeed);
+        if (targetCrouchPosition != Vector3.zero)
+        {
+            // Smoothly move to target crouch position
+            transform.position = Vector3.Lerp(
+                transform.position,
+                targetCrouchPosition,
+                Time.deltaTime * crouchTransitionSpeed
+            );
+
+            // Check if we're close enough to target
+            if (Vector3.Distance(transform.position, targetCrouchPosition) < 0.01f)
+            {
+                transform.position = targetCrouchPosition;
+                targetCrouchPosition = Vector3.zero; // Reset target
+            }
+        }
+
+        // Update camera position for crouching
+        UpdateCameraForCrouch();
+    }
+
+    /// <summary>
+    /// Update camera position for crouching
+    /// </summary>
+    private void UpdateCameraForCrouch()
+    {
+        if (playerCam == null) return;
+
+        // Calculate target camera height based on crouch state
+        float targetCameraY = isCrouching ?
+            originalCamPos.y * (crouchHeight / standHeight) :
+            originalCamPos.y;
+
+        // Smoothly adjust camera height
+        Vector3 currentCamPos = playerCam.localPosition;
+        currentCamPos.y = Mathf.Lerp(currentCamPos.y, targetCameraY, Time.deltaTime * crouchTransitionSpeed);
+        playerCam.localPosition = currentCamPos;
     }
 
     #endregion

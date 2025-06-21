@@ -1,0 +1,61 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0ceac90cab185fe45aafc7b3a625228a, type: 3}
+  m_Name: CrowbarData
+  m_EditorClassIdentifier: 
+  weaponName: Crowbar
+  weaponType: 11
+  description: 
+  damage: 25
+  range: 50
+  fireRate: 300
+  accuracy: 0.85
+  magazineSize: 15
+  maxAmmo: 120
+  reloadTime: 2
+  firingMode: 3
+  bulletsPerShot: 1
+  burstCount: 3
+  meleeAttackType: 0
+  meleeRange: 2
+  meleeArc: 60
+  meleeHitWindow: 0.3
+  meleeCooldown: 0.5
+  allowCombo: 0
+  maxComboHits: 3
+  comboWindow: 1
+  comboDamageMultiplier: 1.2
+  meleeKnockbackForce: 10
+  meleeKnockbackUpforce: 2
+  knockbackForce: 12
+  baseHorizontalStrength: 2
+  upwardBoostAngle: 70
+  upwardBoostMultiplier: 3
+  maxDownwardForceMultiplier: 5
+  muzzleFlashParticles: {fileID: 0}
+  impactParticles: {fileID: 0}
+  meleeImpactParticles: {fileID: 0}
+  bulletTrailPrefab: {fileID: 0}
+  meleeTrailEffect: {fileID: 0}
+  weaponPrefab: {fileID: 919132149155446097, guid: de41979f2e3867f458b2631c697383b5, type: 3}
+  holdPosition: {x: 0.5, y: -0.3, z: 0.8}
+  holdRotation: {x: 0, y: 0, z: 0}
+  adsPosition: {x: 0, y: -0.15, z: 0.4}
+  adsRotation: {x: 0, y: 0, z: 0}
+  adsFOV: 40
+  adsSpeed: 8
+  adsAccuracyMultiplier: 2
+  canBlock: 0
+  blockDamageReduction: 0.5
+  screenShakeIntensity: 0.3
+  screenShakeDuration: 0.1
+  meleeShakeIntensity: 0.4
