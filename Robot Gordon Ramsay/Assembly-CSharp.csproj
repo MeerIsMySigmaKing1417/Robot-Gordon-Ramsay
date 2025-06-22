@@ -61,10 +61,10 @@
     <Analyzer Include="C:\Program Files\Unity\Hub\Editor\6000.1.7f1\Editor\Data\Tools\Unity.SourceGenerators\Unity.UIToolkit.SourceGenerator.dll" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Assets\Scripts\Weapons\SimpleTestTarget.cs" />
     <Compile Include="Assets\Scripts\Debuging\ParticleDebugTest.cs" />
     <Compile Include="Assets\Scripts\Weapons\WeaponController.cs" />
     <Compile Include="Assets\Scripts\Interactable Objects\CookingApplianceController.cs" />
-    <Compile Include="Assets\Scripts\Weapons\DebugPickupSystem.cs" />
     <Compile Include="Assets\PlayerInputActions.cs" />
     <Compile Include="Assets\Scripts\Weapons\PickupableWeapon.cs" />
     <Compile Include="Assets\Scripts\Weapons\Health.cs" />

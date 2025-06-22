@@ -3,44 +3,48 @@
   "WorkspaceRootPath": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\",
   "Documents": [
     {
-      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|c:\\users\\user\\onedrive\\documents\\github\\robot-gordon-ramsay\\robot gordon ramsay\\assets\\scripts\\weapons\\meleeweaponcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:assets\\scripts\\weapons\\meleeweaponcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\weaponmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\weaponmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\weaponcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\weaponcontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\weaponsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\weaponsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\weaponmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\weaponmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\camerashake.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\camerashake.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
-      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\pickupableweapon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\pickupableweapon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
-    },
-    {
       "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\health.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\health.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\debugpickupsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\debugpickupsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\CompleteInputDebug.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\Weapons\\CompleteInputDebug.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\playerscripts\\playermovement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\playerscripts\\playermovement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
       "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\interactable objects\\interactionmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
       "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\interactable objects\\interactionmanager.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     },
     {
-      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\playerscripts\\playermovement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
-      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\playerscripts\\playermovement.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\meleecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\meleecontroller.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\camerashake.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\camerashake.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\weaponsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\weaponsystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\assets\\scripts\\weapons\\pickupableweapon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{B604768F-59D6-F577-743E-D74794745B31}|Assembly-CSharp.csproj|solutionrelative:assets\\scripts\\weapons\\pickupableweapon.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
+    },
+    {
+      "AbsoluteMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\DebugPickupSystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}",
+      "RelativeMoniker": "D:0:0:{A2FE74E1-B743-11D0-AE1A-00A0C90FFFC3}|\u003CMiscFiles\u003E|solutionrelative:Assets\\Scripts\\Weapons\\DebugPickupSystem.cs||{A6C744A8-0E4A-4FC6-886A-064283054674}"
     }
   ],
   "DocumentGroupContainers": [
@@ -54,62 +58,61 @@
           "Children": [
             {
               "$type": "Document",
-              "DocumentIndex": 4,
+              "DocumentIndex": 3,
+              "Title": "CompleteInputDebug.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\CompleteInputDebug.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\CompleteInputDebug.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\CompleteInputDebug.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\CompleteInputDebug.cs",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-21T21:15:45.426Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 6,
+              "Title": "MeleeController.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\MeleeController.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\MeleeController.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\MeleeController.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\MeleeController.cs",
+              "ViewState": "AgIAAKIDAAAAAAAAAAAiwNADAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-21T10:10:00.526Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 7,
               "Title": "CameraShake.cs",
               "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\CameraShake.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\CameraShake.cs",
               "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\CameraShake.cs",
               "RelativeToolTip": "Assets\\Scripts\\Weapons\\CameraShake.cs",
-              "ViewState": "AgIAAOsAAAAAAAAAAAAAAOsAAAAEAAAAAAAAAA==",
+              "ViewState": "AgIAAAgAAAAAAAAAAAAAAOsAAAAEAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-06-21T01:01:21.621Z"
             },
             {
               "$type": "Document",
-              "DocumentIndex": 2,
-              "Title": "WeaponSystem.cs",
-              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponSystem.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\WeaponSystem.cs",
-              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponSystem.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Weapons\\WeaponSystem.cs",
-              "ViewState": "AgIAAPgAAAAAAAAAAAAiwCYBAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-20T23:46:00.064Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 3,
+              "DocumentIndex": 0,
               "Title": "WeaponManager.cs",
               "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponManager.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\WeaponManager.cs",
               "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponManager.cs",
               "RelativeToolTip": "Assets\\Scripts\\Weapons\\WeaponManager.cs",
-              "ViewState": "AgIAALIEAAAAAAAAAAAiwL8EAAAkAAAAAAAAAA==",
+              "ViewState": "AgIAAFADAAAAAAAAAAAAAGQDAAAPAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-20T23:48:17.41Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 0,
-              "Title": "MeleeWeaponController.cs",
-              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\MeleeWeaponController.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\MeleeWeaponController.cs",
-              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\MeleeWeaponController.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Weapons\\MeleeWeaponController.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAFwDAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-21T09:38:28.342Z",
+              "WhenOpened": "2025-06-20T23:48:17.41Z",
               "EditorCaption": ""
             },
             {
               "$type": "Document",
-              "DocumentIndex": 9,
+              "DocumentIndex": 4,
               "Title": "PlayerMovement.cs",
               "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\PlayerScripts\\PlayerMovement.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\PlayerScripts\\PlayerMovement.cs",
               "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\PlayerScripts\\PlayerMovement.cs",
               "RelativeToolTip": "Assets\\Scripts\\PlayerScripts\\PlayerMovement.cs",
-              "ViewState": "AgIAALsAAAAAAAAAAAAiwOkAAAAEAAAAAAAAAA==",
+              "ViewState": "AgIAAA8BAAAAAAAAAAAiwCQBAAAJAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
               "WhenOpened": "2025-06-20T23:52:54.94Z"
             },
@@ -121,13 +124,51 @@
               "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\WeaponController.cs",
               "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponController.cs",
               "RelativeToolTip": "Assets\\Scripts\\Weapons\\WeaponController.cs",
-              "ViewState": "AgIAAIUFAAAAAAAAAAAiwLMFAAABAAAAAAAAAA==",
+              "ViewState": "AgIAAHIFAAAAAAAAAAAqwJgFAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-20T23:46:11.036Z"
+              "WhenOpened": "2025-06-20T23:46:11.036Z",
+              "EditorCaption": ""
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 2,
+              "Title": "Health.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\Health.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\Health.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\Health.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\Health.cs",
+              "ViewState": "AgIAADYAAAAAAAAAAAAwwF4BAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-20T23:47:52.668Z",
+              "EditorCaption": ""
             },
             {
               "$type": "Document",
               "DocumentIndex": 5,
+              "Title": "InteractionManager.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Interactable Objects\\InteractionManager.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Interactable Objects\\InteractionManager.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Interactable Objects\\InteractionManager.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Interactable Objects\\InteractionManager.cs",
+              "ViewState": "AgIAAOQAAAAAAAAAAAAiwAwBAAABAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-21T01:08:12.27Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 10,
+              "Title": "DebugPickupSystem.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
+              "ViewState": "AgIAAAAAAAAAAAAAAAAAACMAAAAeAAAAAAAAAA==",
+              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
+              "WhenOpened": "2025-06-21T00:25:41.311Z"
+            },
+            {
+              "$type": "Document",
+              "DocumentIndex": 9,
               "Title": "PickupableWeapon.cs",
               "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\PickupableWeapon.cs",
               "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\PickupableWeapon.cs",
@@ -139,39 +180,15 @@
             },
             {
               "$type": "Document",
-              "DocumentIndex": 6,
-              "Title": "Health.cs",
-              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\Health.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\Health.cs",
-              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\Health.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Weapons\\Health.cs",
-              "ViewState": "AgIAAF4BAAAAAAAAAAAAAF4BAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-20T23:47:52.668Z"
-            },
-            {
-              "$type": "Document",
-              "DocumentIndex": 7,
-              "Title": "DebugPickupSystem.cs",
-              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
-              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Weapons\\DebugPickupSystem.cs",
-              "ViewState": "AgIAAJsAAAAAAAAAAAAiwMkAAAABAAAAAAAAAA==",
-              "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-21T00:25:41.311Z"
-            },
-            {
-              "$type": "Document",
               "DocumentIndex": 8,
-              "Title": "InteractionManager.cs",
-              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Interactable Objects\\InteractionManager.cs",
-              "RelativeDocumentMoniker": "Assets\\Scripts\\Interactable Objects\\InteractionManager.cs",
-              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Interactable Objects\\InteractionManager.cs",
-              "RelativeToolTip": "Assets\\Scripts\\Interactable Objects\\InteractionManager.cs",
-              "ViewState": "AgIAAAAAAAAAAAAAAAAAAEkAAAAEAAAAAAAAAA==",
+              "Title": "WeaponSystem.cs",
+              "DocumentMoniker": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponSystem.cs",
+              "RelativeDocumentMoniker": "Assets\\Scripts\\Weapons\\WeaponSystem.cs",
+              "ToolTip": "C:\\Users\\User\\OneDrive\\Documents\\GitHub\\Robot-Gordon-Ramsay\\Robot Gordon Ramsay\\Assets\\Scripts\\Weapons\\WeaponSystem.cs",
+              "RelativeToolTip": "Assets\\Scripts\\Weapons\\WeaponSystem.cs",
+              "ViewState": "AgIAAPgAAAAAAAAAAAAiwCYBAAABAAAAAAAAAA==",
               "Icon": "ae27a6b0-e345-4288-96df-5eaf394ee369.000738|",
-              "WhenOpened": "2025-06-21T01:08:12.27Z"
+              "WhenOpened": "2025-06-20T23:46:00.064Z"
             }
           ]
         }

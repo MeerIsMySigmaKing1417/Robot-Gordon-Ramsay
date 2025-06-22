@@ -239,8 +239,14 @@ public class Movement : MonoBehaviour
         inputActions = new PlayerInputActions();
     }
 
-    private void OnEnable()
+    void OnEnable()
     {
+        // Create inputActions if it doesn't exist
+        if (inputActions == null)
+        {
+            inputActions = new PlayerInputActions();
+        }
+
         inputActions.Enable();
         inputActions.Player.Enable();
 
@@ -271,13 +277,29 @@ public class Movement : MonoBehaviour
         inputActions.Player.ScrollUp.performed += ctx => HandleWeaponPickup();
 
         // Distance control input (scroll wheel)
-        inputActions.Player.ScrollUp.performed += ctx => HandleScrollWheel(-1f);   // Farther
-        inputActions.Player.ScrollDown.performed += ctx => HandleScrollWheel(1f);  // Closer
+        inputActions.Player.ScrollUp.performed += ctx => HandleScrollWheel(-1f);
+        inputActions.Player.ScrollDown.performed += ctx => HandleScrollWheel(1f);
     }
 
     private void OnDisable()
     {
         inputActions.Player.Disable();
+
+        if (inputActions != null)
+        {
+            inputActions.Player.Disable();
+            inputActions.UI.Disable();
+            inputActions.Disable();
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (inputActions != null)
+        {
+            inputActions.Dispose();
+            inputActions = null;
+        }
     }
 
     private void Start()

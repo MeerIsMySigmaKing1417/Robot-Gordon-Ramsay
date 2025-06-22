@@ -1,5 +1,4 @@
 ﻿using UnityEngine;
-using UnityEngine.Events;
 
 /// <summary>
 /// Enum for different weapon types - ENHANCED WITH MELEE
@@ -185,22 +184,6 @@ public class WeaponData : ScriptableObject
     [Tooltip("Melee swing trail effect")]
     public GameObject meleeTrailEffect;
 
-    // [Header("Audio Effects")] - COMMENTED OUT FOR NOW
-    // [Tooltip("Sound when firing")]
-    // public AudioClip fireSound;
-
-    // [Tooltip("Sound when reloading")]
-    // public AudioClip reloadSound;
-
-    // [Tooltip("Sound when out of ammo")]
-    // public AudioClip emptySound;
-
-    // [Tooltip("Sound when performing melee attack")]
-    // public AudioClip meleeSwingSound;
-
-    // [Tooltip("Sound when melee attack hits target")]
-    // public AudioClip meleeHitSound;
-
     [Header("Weapon Model")]
     [Tooltip("3D model/prefab for the weapon")]
     public GameObject weaponPrefab;
@@ -267,18 +250,38 @@ public class WeaponData : ScriptableObject
     }
 
     /// <summary>
-    /// Check if this weapon is a melee weapon
+    /// IMPROVED: Check if this weapon is a melee weapon - More comprehensive detection
     /// </summary>
     public bool IsMeleeWeapon()
     {
-        return firingMode == FiringMode.Melee ||
-               weaponType == WeaponType.Knife ||
-               weaponType == WeaponType.Sword ||
-               weaponType == WeaponType.Axe ||
-               weaponType == WeaponType.Hammer ||
-               weaponType == WeaponType.Bat ||
-               weaponType == WeaponType.Crowbar ||
-               weaponType == WeaponType.Fists;
+        // PRIMARY CHECK: Weapon type
+        bool isMeleeType = weaponType == WeaponType.Knife ||
+                          weaponType == WeaponType.Sword ||
+                          weaponType == WeaponType.Axe ||
+                          weaponType == WeaponType.Hammer ||
+                          weaponType == WeaponType.Bat ||
+                          weaponType == WeaponType.Crowbar ||
+                          weaponType == WeaponType.Fists;
+
+        // SECONDARY CHECK: Firing mode
+        bool isMeleeMode = firingMode == FiringMode.Melee;
+
+        // TERTIARY CHECK: Has melee-specific settings configured
+        bool hasMeleeSettings = meleeRange > 0f && meleeArc > 0f;
+
+        // Return true if ANY condition is met (most comprehensive)
+        bool result = isMeleeType || isMeleeMode || hasMeleeSettings;
+
+        // DEBUG LOG for troubleshooting
+        if (result)
+        {
+            Debug.Log($"✅ {weaponName} detected as MELEE weapon:");
+            Debug.Log($"   - Type Check: {isMeleeType} (type: {weaponType})");
+            Debug.Log($"   - Mode Check: {isMeleeMode} (mode: {firingMode})");
+            Debug.Log($"   - Settings Check: {hasMeleeSettings} (range: {meleeRange}, arc: {meleeArc})");
+        }
+
+        return result;
     }
 
     /// <summary>
@@ -291,5 +294,111 @@ public class WeaponData : ScriptableObject
 
         float multiplier = 1f + (comboCount * (comboDamageMultiplier - 1f));
         return damage * multiplier;
+    }
+
+    /// <summary>
+    /// AUTO-CONFIGURE for melee weapons - Call this to automatically set up melee weapons
+    /// </summary>
+    [ContextMenu("Auto-Configure as Melee Weapon")]
+    public void AutoConfigureAsMeleeWeapon()
+    {
+        // Set firing mode to melee
+        firingMode = FiringMode.Melee;
+
+        // Configure melee-appropriate settings based on weapon type
+        switch (weaponType)
+        {
+            case WeaponType.Knife:
+                meleeRange = 1.5f;
+                meleeArc = 45f;
+                fireRate = 180f; // Fast attacks
+                damage = 35f;
+                meleeHitWindow = 0.2f;
+                meleeCooldown = 0.3f;
+                allowCombo = true;
+                maxComboHits = 3;
+                break;
+
+            case WeaponType.Sword:
+                meleeRange = 2.5f;
+                meleeArc = 90f;
+                fireRate = 120f; // Medium speed
+                damage = 65f;
+                meleeHitWindow = 0.4f;
+                meleeCooldown = 0.6f;
+                allowCombo = true;
+                maxComboHits = 4;
+                canBlock = true;
+                blockDamageReduction = 0.7f;
+                break;
+
+            case WeaponType.Axe:
+                meleeRange = 2.0f;
+                meleeArc = 70f;
+                fireRate = 90f; // Slow, heavy attacks
+                damage = 85f;
+                meleeHitWindow = 0.5f;
+                meleeCooldown = 0.8f;
+                allowCombo = false;
+                meleeKnockbackForce = 20f;
+                meleeKnockbackUpforce = 5f;
+                break;
+
+            case WeaponType.Hammer:
+                meleeRange = 1.8f;
+                meleeArc = 60f;
+                fireRate = 80f; // Very slow, very heavy
+                damage = 100f;
+                meleeHitWindow = 0.6f;
+                meleeCooldown = 1.0f;
+                allowCombo = false;
+                meleeKnockbackForce = 25f;
+                meleeKnockbackUpforce = 8f;
+                break;
+
+            case WeaponType.Bat:
+                meleeRange = 2.2f;
+                meleeArc = 80f;
+                fireRate = 150f; // Medium speed
+                damage = 50f;
+                meleeHitWindow = 0.3f;
+                meleeCooldown = 0.4f;
+                allowCombo = true;
+                maxComboHits = 2;
+                meleeKnockbackForce = 15f;
+                break;
+
+            case WeaponType.Crowbar:
+                meleeRange = 2.0f;
+                meleeArc = 65f;
+                fireRate = 110f; // Medium-slow
+                damage = 70f;
+                meleeHitWindow = 0.4f;
+                meleeCooldown = 0.7f;
+                allowCombo = false;
+                meleeKnockbackForce = 18f;
+                canBlock = true;
+                blockDamageReduction = 0.4f;
+                break;
+
+            case WeaponType.Fists:
+                meleeRange = 1.2f;
+                meleeArc = 50f;
+                fireRate = 240f; // Very fast
+                damage = 20f;
+                meleeHitWindow = 0.15f;
+                meleeCooldown = 0.2f;
+                allowCombo = true;
+                maxComboHits = 5;
+                comboDamageMultiplier = 1.1f;
+                break;
+        }
+
+        // Set screen shake for melee
+        meleeShakeIntensity = 0.4f;
+        screenShakeIntensity = 0.2f;
+        screenShakeDuration = 0.1f;
+
+        Debug.Log($"✅ Auto-configured {weaponName} as {weaponType} melee weapon");
     }
 }

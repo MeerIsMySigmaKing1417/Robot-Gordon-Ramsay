@@ -1,12 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Events;
 
 /// <summary>
-/// Handles melee combat functionality for melee weapons
-/// Attach this component to melee weapon prefabs alongside WeaponController
-/// FIXED: Code-based animation instead of Unity Animator
+/// SIMPLIFIED MeleeController - No event system errors, just pure functionality
+/// This version focuses on getting melee attacks working reliably
+/// Replace your existing MeleeController with this one
 /// </summary>
 public class MeleeController : MonoBehaviour
 {
@@ -33,47 +32,12 @@ public class MeleeController : MonoBehaviour
     [Range(0.1f, 1f)]
     public float swingForwardDistance = 0.3f;
 
-    // COMMENTED OUT ANIMATOR STUFF
-    /*
-    [Header("Animation")]
-    [Tooltip("Animator component for weapon animations")]
-    public Animator weaponAnimator;
-
-    [Tooltip("Name of light attack animation trigger")]
-    public string lightAttackTrigger = "LightAttack";
-
-    [Tooltip("Name of heavy attack animation trigger")]
-    public string heavyAttackTrigger = "HeavyAttack";
-
-    [Tooltip("Name of combo attack animation trigger")]
-    public string comboAttackTrigger = "ComboAttack";
-
-    [Tooltip("Name of block animation trigger")]
-    public string blockTrigger = "Block";
-    */
-
     [Header("Debug")]
     [Tooltip("Show attack range and arc in scene view")]
     public bool showDebugGizmos = true;
 
     [Tooltip("Show debug messages for attacks")]
     public bool debugAttacks = true;
-
-    // Events
-    [System.Serializable]
-    public class MeleeEvents
-    {
-        public UnityEvent OnAttackStarted;
-        public UnityEvent OnAttackHit;
-        public UnityEvent OnAttackMissed;
-        public UnityEvent OnComboStarted;
-        public UnityEvent OnComboEnded;
-        public UnityEvent OnBlockStarted;
-        public UnityEvent OnBlockEnded;
-    }
-
-    [Header("Events")]
-    public MeleeEvents meleeEvents;
 
     // Private variables
     private WeaponController weaponController;
@@ -93,7 +57,7 @@ public class MeleeController : MonoBehaviour
     private List<Collider> hitTargets = new List<Collider>();
     private GameObject currentTrailEffect;
 
-    // Code-based animation
+    // Animation
     private Vector3 originalPosition;
     private Vector3 originalRotation;
     private bool isAnimating = false;
@@ -103,62 +67,139 @@ public class MeleeController : MonoBehaviour
 
     void Awake()
     {
+        InitializeComponents();
+    }
+
+    void Start()
+    {
+        EnsureProperSetup();
+    }
+
+    void Update()
+    {
+        if (weaponData == null) return;
+
+        UpdateComboTimer();
+    }
+
+    #endregion
+
+    #region Initialization
+
+    private void InitializeComponents()
+    {
+        Debug.Log($"🔧 SimpleMeleeController: Initializing for {gameObject.name}");
+
+        // Get weapon controller and data
         weaponController = GetComponent<WeaponController>();
         if (weaponController != null)
         {
             weaponData = weaponController.weaponData;
         }
 
-        // Find camera and camera shake
-        playerCamera = Camera.main;
-        if (playerCamera == null)
-        {
-            playerCamera = FindObjectOfType<Camera>();
-        }
+        // Find player camera
+        playerCamera = Camera.main ?? FindObjectOfType<Camera>();
 
+        // Find camera shake
         cameraShake = FindObjectOfType<CameraShake>();
         if (cameraShake == null && playerCamera != null)
         {
             cameraShake = playerCamera.gameObject.GetComponent<CameraShake>();
         }
 
-        // Setup attack point if not assigned
-        if (attackPoint == null)
-        {
-            attackPoint = transform;
-        }
-
-        if (trailPoint == null)
-        {
-            trailPoint = attackPoint;
-        }
+        // Setup attack points
+        SetupAttackPoints();
 
         // Store original transform for animations
         originalPosition = transform.localPosition;
         originalRotation = transform.localEulerAngles;
     }
 
-    void Start()
+    private void SetupAttackPoints()
     {
-        if (weaponData == null)
+        // Setup attack point
+        if (attackPoint == null)
         {
-            Debug.LogError($"MeleeController on {gameObject.name} has no WeaponData assigned!", this);
+            Transform existingAttackPoint = transform.Find("AttackPoint");
+            if (existingAttackPoint != null)
+            {
+                attackPoint = existingAttackPoint;
+            }
+            else
+            {
+                CreateAttackPoint();
+            }
+        }
+
+        // Setup trail point
+        if (trailPoint == null)
+        {
+            Transform existingTrailPoint = transform.Find("TrailPoint");
+            if (existingTrailPoint != null)
+            {
+                trailPoint = existingTrailPoint;
+            }
+            else
+            {
+                trailPoint = attackPoint ?? transform;
+            }
+        }
+    }
+
+    private void CreateAttackPoint()
+    {
+        GameObject attackPointObj = new GameObject("AttackPoint");
+        attackPointObj.transform.SetParent(transform);
+
+        Vector3 attackPosition = GetAttackPointPosition();
+        attackPointObj.transform.localPosition = attackPosition;
+        attackPoint = attackPointObj.transform;
+
+        Debug.Log($"✅ Created AttackPoint at {attackPosition}");
+    }
+
+    private Vector3 GetAttackPointPosition()
+    {
+        if (weaponData == null) return new Vector3(0f, 0f, 1.0f);
+
+        switch (weaponData.weaponType)
+        {
+            case WeaponType.Knife: return new Vector3(0f, 0f, 0.8f);
+            case WeaponType.Sword: return new Vector3(0f, 0f, 1.8f);
+            case WeaponType.Axe: return new Vector3(0f, 0f, 1.4f);
+            case WeaponType.Hammer: return new Vector3(0f, 0f, 1.2f);
+            case WeaponType.Bat: return new Vector3(0f, 0f, 1.6f);
+            case WeaponType.Crowbar: return new Vector3(0f, 0f, 1.3f);
+            case WeaponType.Fists: return new Vector3(0f, 0f, 0.6f);
+            default: return new Vector3(0f, 0f, 1.0f);
+        }
+    }
+
+    private void EnsureProperSetup()
+    {
+        bool hasWeaponData = weaponData != null;
+        bool hasCamera = playerCamera != null;
+        bool hasAttackPoint = attackPoint != null;
+
+        if (!hasWeaponData)
+        {
+            Debug.LogError("❌ No WeaponData found!");
             enabled = false;
             return;
         }
 
-        if (!weaponData.IsMeleeWeapon())
+        if (!hasCamera)
         {
-            Debug.LogWarning($"MeleeController on {gameObject.name} is attached to a non-melee weapon!", this);
+            Debug.LogError("❌ No Camera found!");
+            return;
         }
 
-        Debug.Log($"MeleeController initialized for {weaponData.weaponName}");
-    }
+        if (!hasAttackPoint)
+        {
+            CreateAttackPoint();
+        }
 
-    void Update()
-    {
-        UpdateComboTimer();
-        UpdateCooldowns();
+        Debug.Log($"✅ SimpleMeleeController ready for {weaponData.weaponName}");
     }
 
     #endregion
@@ -166,448 +207,315 @@ public class MeleeController : MonoBehaviour
     #region Public Methods
 
     /// <summary>
-    /// Perform a melee attack
+    /// Perform a melee attack - SIMPLIFIED VERSION
     /// </summary>
     public void TryAttack(bool lightAttack, bool heavyAttack)
     {
-        if (!canAttack || isAttacking || weaponData == null)
-        {
-            if (debugAttacks)
-            {
-                Debug.Log($"Attack blocked - canAttack: {canAttack}, isAttacking: {isAttacking}, weaponData: {weaponData != null}");
-            }
-            return;
-        }
-
-        // Determine attack type
-        MeleeAttackType attackType = MeleeAttackType.Light;
-        if (heavyAttack)
-        {
-            attackType = MeleeAttackType.Heavy;
-        }
-        else if (weaponData.allowCombo && currentCombo > 0)
-        {
-            attackType = MeleeAttackType.Combo;
-        }
+        if (!CanAttack()) return;
 
         if (debugAttacks)
         {
-            Debug.Log($"Starting {attackType} attack with {weaponData.weaponName}");
+            Debug.Log($"🔨 SimpleMeleeController: Starting attack with {weaponData.weaponName}");
         }
 
-        StartCoroutine(PerformAttack(attackType));
+        // Determine attack type
+        MeleeAttackType attackType = heavyAttack ? MeleeAttackType.Heavy : MeleeAttackType.Light;
+
+        lastAttackTime = Time.time;
+        StartCoroutine(PerformAttackCoroutine(attackType));
     }
 
-    /// <summary>
-    /// Start blocking with this weapon
-    /// </summary>
-    public void StartBlock()
+    private bool CanAttack()
     {
-        if (!weaponData.canBlock || isAttacking)
-            return;
-
-        isBlocking = true;
-
-        // Trigger block animation (code-based)
-        if (useCodeAnimation)
+        if (weaponData == null || playerCamera == null || attackPoint == null)
         {
-            StartBlockAnimation();
+            if (debugAttacks) Debug.LogError("Missing required components for attack!");
+            return false;
         }
 
-        meleeEvents.OnBlockStarted?.Invoke();
-        Debug.Log($"Started blocking with {weaponData.weaponName}");
-    }
-
-    /// <summary>
-    /// Stop blocking
-    /// </summary>
-    public void StopBlock()
-    {
-        if (!isBlocking)
-            return;
-
-        isBlocking = false;
-
-        // Stop block animation
-        if (useCodeAnimation)
+        if (isAttacking)
         {
-            StopBlockAnimation();
+            if (debugAttacks) Debug.Log("Already attacking!");
+            return false;
         }
 
-        meleeEvents.OnBlockEnded?.Invoke();
-        Debug.Log($"Stopped blocking with {weaponData.weaponName}");
-    }
-
-    /// <summary>
-    /// Check if currently blocking
-    /// </summary>
-    public bool IsBlocking()
-    {
-        return isBlocking;
-    }
-
-    /// <summary>
-    /// Apply damage reduction if blocking
-    /// </summary>
-    public float ApplyBlockDamageReduction(float incomingDamage)
-    {
-        if (!isBlocking || !weaponData.canBlock)
-            return incomingDamage;
-
-        float reducedDamage = incomingDamage * (1f - weaponData.blockDamageReduction);
-        Debug.Log($"Blocked attack! Damage reduced from {incomingDamage} to {reducedDamage}");
-
-        // Apply screen shake for successful block
-        if (cameraShake != null)
+        if (!canAttack)
         {
-            cameraShake.Shake(0.2f, 0.1f);
+            if (debugAttacks) Debug.Log("Attack on cooldown!");
+            return false;
         }
 
-        return reducedDamage;
-    }
-
-    /// <summary>
-    /// Get current combo count
-    /// </summary>
-    public int GetComboCount()
-    {
-        return currentCombo;
-    }
-
-    /// <summary>
-    /// Reset combo chain
-    /// </summary>
-    public void ResetCombo()
-    {
-        if (currentCombo > 0)
-        {
-            meleeEvents.OnComboEnded?.Invoke();
-        }
-        currentCombo = 0;
-        lastComboTime = 0f;
+        return true;
     }
 
     #endregion
 
-    #region Private Methods
+    #region Attack System
 
-    /// <summary>
-    /// Perform the actual melee attack
-    /// </summary>
-    private IEnumerator PerformAttack(MeleeAttackType attackType)
+    private IEnumerator PerformAttackCoroutine(MeleeAttackType attackType)
     {
         isAttacking = true;
         canAttack = false;
         hitTargets.Clear();
 
-        // Start attack
-        meleeEvents.OnAttackStarted?.Invoke();
-
         if (debugAttacks)
         {
-            Debug.Log($"=== ATTACK STARTED ===");
-            Debug.Log($"Attack Type: {attackType}");
-            Debug.Log($"Attack Range: {weaponData.meleeRange}");
-            Debug.Log($"Attack Arc: {weaponData.meleeArc}");
+            Debug.Log($"=== ATTACK STARTED: {attackType} ===");
         }
 
-        // Handle combo logic
-        if (attackType == MeleeAttackType.Combo || (weaponData.allowCombo && currentCombo == 0))
+        // Handle combo
+        if (weaponData.allowCombo)
         {
             currentCombo++;
             lastComboTime = Time.time;
-
-            if (currentCombo == 1)
-            {
-                meleeEvents.OnComboStarted?.Invoke();
-            }
         }
 
         // Trigger animation
-        TriggerAttackAnimation(attackType);
+        if (useCodeAnimation)
+        {
+            TriggerAttackAnimation(attackType);
+        }
 
         // Spawn trail effect
         SpawnTrailEffect();
 
-        // Calculate attack timing
+        // Calculate timing
         float attackSpeed = weaponData.GetTimeBetweenShots();
-        float hitWindowStart = attackSpeed * 0.3f; // Hit detection starts 30% through attack
-        float hitWindowEnd = hitWindowStart + weaponData.meleeHitWindow;
+        float hitWindowStart = attackSpeed * 0.3f;
+        float hitWindowDuration = weaponData.meleeHitWindow;
+
+        // Wait for hit window
+        yield return new WaitForSeconds(hitWindowStart);
+
+        // Hit detection
+        bool hitSomething = CheckForHits(attackType);
 
         if (debugAttacks)
         {
-            Debug.Log($"Attack timing - Speed: {attackSpeed:F2}s, Hit window: {hitWindowStart:F2}s to {hitWindowEnd:F2}s");
-        }
-
-        // Wait for hit window to start
-        yield return new WaitForSeconds(hitWindowStart);
-
-        // Perform hit detection during hit window
-        bool hitSomething = false;
-        float hitCheckInterval = 0.02f; // Check for hits every 20ms during hit window
-        float hitWindowDuration = hitWindowEnd - hitWindowStart;
-        float hitCheckTime = 0f;
-
-        while (hitCheckTime < hitWindowDuration)
-        {
-            if (CheckForHits(attackType))
-            {
-                hitSomething = true;
-            }
-
-            hitCheckTime += hitCheckInterval;
-            yield return new WaitForSeconds(hitCheckInterval);
+            Debug.Log(hitSomething ? "✅ Attack HIT!" : "❌ Attack MISSED");
         }
 
         // Wait for attack to complete
-        float remainingTime = attackSpeed - hitWindowEnd;
+        float remainingTime = attackSpeed - hitWindowStart - hitWindowDuration;
         if (remainingTime > 0)
         {
             yield return new WaitForSeconds(remainingTime);
         }
 
-        // Trigger appropriate event
-        if (hitSomething)
-        {
-            meleeEvents.OnAttackHit?.Invoke();
-            if (debugAttacks) Debug.Log("Attack HIT something!");
-        }
-        else
-        {
-            meleeEvents.OnAttackMissed?.Invoke();
-            if (debugAttacks) Debug.Log("Attack MISSED");
-        }
-
-        // Cleanup trail effect
+        // Cleanup
         CleanupTrailEffect();
-
-        // End attack
         isAttacking = false;
-
-        // Start cooldown
         StartCoroutine(AttackCooldown());
     }
 
-    /// <summary>
-    /// Check for targets within attack range and arc - IMPROVED DEBUG
-    /// </summary>
     private bool CheckForHits(MeleeAttackType attackType)
     {
-        bool hitSomething = false;
         Vector3 attackOrigin = attackPoint.position;
         Vector3 attackDirection = playerCamera.transform.forward;
 
         if (debugAttacks)
         {
-            Debug.Log($"=== HIT CHECK ===");
-            Debug.Log($"Attack Origin: {attackOrigin}");
-            Debug.Log($"Attack Direction: {attackDirection}");
-            Debug.Log($"Attack Range: {weaponData.meleeRange}");
+            Debug.Log($"Hit check: Origin={attackOrigin}, Range={weaponData.meleeRange}");
         }
 
-        // Find all colliders within range
+        // Find colliders in range
         Collider[] colliders = Physics.OverlapSphere(attackOrigin, weaponData.meleeRange);
-
-        if (debugAttacks)
-        {
-            Debug.Log($"Found {colliders.Length} colliders in range");
-        }
+        bool hitSomething = false;
 
         foreach (Collider col in colliders)
         {
-            // Skip if already hit this target in this attack
-            if (hitTargets.Contains(col))
-                continue;
+            if (!IsValidTarget(col, attackOrigin, attackDirection)) continue;
 
-            // Skip self and player
-            if (col.transform.IsChildOf(transform.root))
+            if (ApplyDamage(col.gameObject, attackType))
             {
-                if (debugAttacks) Debug.Log($"Skipping {col.name} - is child of player");
-                continue;
-            }
+                hitTargets.Add(col);
+                hitSomething = true;
 
-            // Check if target is within attack arc
-            Vector3 directionToTarget = (col.transform.position - attackOrigin).normalized;
-            float angleToTarget = Vector3.Angle(attackDirection, directionToTarget);
-
-            if (debugAttacks)
-            {
-                Debug.Log($"Target: {col.name}, Angle: {angleToTarget:F1}°, Max Angle: {weaponData.meleeArc * 0.5f:F1}°");
-            }
-
-            if (angleToTarget <= weaponData.meleeArc * 0.5f)
-            {
-                // Target is within arc, apply damage
-                if (ApplyMeleeDamage(col.gameObject, attackType))
+                // Screen shake
+                if (cameraShake != null)
                 {
-                    hitTargets.Add(col);
-                    hitSomething = true;
-
-                    // Spawn impact effect
-                    SpawnImpactEffect(col.transform.position, directionToTarget);
-
-                    // Apply knockback
-                    ApplyKnockback(col, directionToTarget);
-
-                    if (debugAttacks)
-                    {
-                        Debug.Log($"HIT: {col.name} - damage applied!");
-                    }
+                    cameraShake.Shake(weaponData.meleeShakeIntensity, 0.1f);
                 }
-                else
-                {
-                    if (debugAttacks)
-                    {
-                        Debug.Log($"HIT: {col.name} - but no damage applied (no damage component)");
-                    }
-                }
-            }
-            else
-            {
-                if (debugAttacks)
-                {
-                    Debug.Log($"MISS: {col.name} - outside attack arc");
-                }
+
+                // Spawn impact effect
+                SpawnImpactEffect(col.transform.position, (col.transform.position - attackOrigin).normalized);
+
+                // Knockback
+                ApplyKnockback(col, (col.transform.position - attackOrigin).normalized);
             }
         }
 
         return hitSomething;
     }
 
-    /// <summary>
-    /// Apply damage to a target - IMPROVED DEBUG
-    /// </summary>
-    private bool ApplyMeleeDamage(GameObject target, MeleeAttackType attackType)
+    private bool IsValidTarget(Collider col, Vector3 attackOrigin, Vector3 attackDirection)
     {
+        if (col == null) return false;
+        if (hitTargets.Contains(col)) return false;
+        if (col.transform.IsChildOf(transform.root)) return false;
+
+        // Check angle
+        Vector3 directionToTarget = (col.transform.position - attackOrigin).normalized;
+        float angleToTarget = Vector3.Angle(attackDirection, directionToTarget);
+
+        bool inArc = angleToTarget <= weaponData.meleeArc * 0.5f;
+
+        if (debugAttacks && inArc)
+        {
+            Debug.Log($"Valid target: {col.name} (angle: {angleToTarget:F1}°)");
+        }
+
+        return inArc;
+    }
+
+    private bool ApplyDamage(GameObject target, MeleeAttackType attackType)
+    {
+        if (target == null) return false;
+
         float damage = weaponData.GetMeleeDamage(currentCombo - 1);
 
         // Apply attack type modifiers
-        switch (attackType)
+        if (attackType == MeleeAttackType.Heavy)
         {
-            case MeleeAttackType.Heavy:
-                damage *= 1.5f;
-                break;
-            case MeleeAttackType.Combo:
-                // Damage already calculated with combo multiplier
-                break;
+            damage *= 1.5f;
+        }
+
+        // Try IDamageable interface
+        IDamageable damageable = target.GetComponent<IDamageable>();
+        if (damageable != null)
+        {
+            try
+            {
+                damageable.TakeDamage(damage);
+                Debug.Log($"💥 Applied {damage} damage to {target.name} via IDamageable");
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Error applying damage via IDamageable: {e.Message}");
+            }
+        }
+
+        // Try Health component
+        Health health = target.GetComponent<Health>();
+        if (health != null)
+        {
+            try
+            {
+                health.TakeDamage(damage);
+                Debug.Log($"💥 Applied {damage} damage to {target.name} via Health");
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Error applying damage via Health: {e.Message}");
+            }
         }
 
         if (debugAttacks)
         {
-            Debug.Log($"Attempting to apply {damage} damage to {target.name}");
+            Debug.Log($"No damage component found on {target.name}");
         }
 
-        // Try to find damage components (same logic as WeaponController)
-        bool damageApplied = false;
-
-        // Method 1: Try IDamageable interface
-        IDamageable damageable = target.GetComponent<IDamageable>();
-        if (damageable != null)
-        {
-            damageable.TakeDamage(damage);
-            damageApplied = true;
-            if (debugAttacks) Debug.Log($"Applied damage via IDamageable interface");
-        }
-        else
-        {
-            // Method 2: Try Health component
-            Health health = target.GetComponent<Health>();
-            if (health != null)
-            {
-                health.TakeDamage(damage);
-                damageApplied = true;
-                if (debugAttacks) Debug.Log($"Applied damage via Health component");
-            }
-            else
-            {
-                if (debugAttacks)
-                {
-                    var components = target.GetComponents<Component>();
-                    Debug.Log($"No damage component found on {target.name}. Components: {string.Join(", ", System.Array.ConvertAll(components, c => c.GetType().Name))}");
-                }
-            }
-        }
-
-        if (damageApplied)
-        {
-            Debug.Log($"Melee hit: {target.name} took {damage} damage");
-
-            // Apply screen shake for hits
-            if (cameraShake != null)
-            {
-                cameraShake.Shake(weaponData.meleeShakeIntensity, 0.1f);
-            }
-        }
-
-        return damageApplied;
+        return false;
     }
 
-    /// <summary>
-    /// Apply knockback to hit target
-    /// </summary>
     private void ApplyKnockback(Collider target, Vector3 direction)
     {
+        if (target == null || weaponData.meleeKnockbackForce <= 0) return;
+
         Rigidbody targetRb = target.GetComponent<Rigidbody>();
-        if (targetRb != null && weaponData.meleeKnockbackForce > 0f)
+        if (targetRb != null)
         {
             Vector3 knockbackForce = direction * weaponData.meleeKnockbackForce;
             knockbackForce += Vector3.up * weaponData.meleeKnockbackUpforce;
-
             targetRb.AddForce(knockbackForce, ForceMode.Impulse);
-            Debug.Log($"Applied knockback to {target.name}: {knockbackForce}");
+
+            if (debugAttacks)
+            {
+                Debug.Log($"Applied knockback to {target.name}: {knockbackForce}");
+            }
         }
     }
 
-    /// <summary>
-    /// Trigger appropriate attack animation - CODE-BASED
-    /// </summary>
+    private void SpawnImpactEffect(Vector3 position, Vector3 normal)
+    {
+        if (weaponData == null) return;
+
+        GameObject effectPrefab = weaponData.meleeImpactParticles != null ?
+            weaponData.meleeImpactParticles : weaponData.impactParticles;
+
+        if (effectPrefab != null)
+        {
+            Quaternion rotation = Quaternion.LookRotation(normal);
+            GameObject effect = Instantiate(effectPrefab, position, rotation);
+            Destroy(effect, 2f);
+        }
+    }
+
+    private void SpawnTrailEffect()
+    {
+        if (weaponData == null || trailPoint == null) return;
+
+        if (weaponData.meleeTrailEffect != null)
+        {
+            currentTrailEffect = Instantiate(weaponData.meleeTrailEffect, trailPoint.position, trailPoint.rotation);
+            currentTrailEffect.transform.SetParent(trailPoint);
+        }
+    }
+
+    private void CleanupTrailEffect()
+    {
+        if (currentTrailEffect != null)
+        {
+            currentTrailEffect.transform.SetParent(null);
+            Destroy(currentTrailEffect, 1f);
+            currentTrailEffect = null;
+        }
+    }
+
+    private IEnumerator AttackCooldown()
+    {
+        yield return new WaitForSeconds(weaponData.meleeCooldown);
+        canAttack = true;
+    }
+
+    private void UpdateComboTimer()
+    {
+        if (currentCombo > 0 && Time.time - lastComboTime > weaponData.comboWindow)
+        {
+            currentCombo = 0;
+            if (debugAttacks) Debug.Log("Combo reset");
+        }
+    }
+
+    #endregion
+
+    #region Animation System
+
     private void TriggerAttackAnimation(MeleeAttackType attackType)
     {
-        if (!useCodeAnimation)
-            return;
+        if (!useCodeAnimation) return;
 
-        // Stop any existing animation
         if (animationCoroutine != null)
         {
             StopCoroutine(animationCoroutine);
         }
 
-        // Start new animation based on attack type
         switch (attackType)
         {
             case MeleeAttackType.Light:
                 animationCoroutine = StartCoroutine(PlaySwingAnimation(1f, false));
                 break;
             case MeleeAttackType.Heavy:
-                animationCoroutine = StartCoroutine(PlaySwingAnimation(0.7f, true)); // Slower, more dramatic
+                animationCoroutine = StartCoroutine(PlaySwingAnimation(0.7f, true));
                 break;
             case MeleeAttackType.Combo:
-                animationCoroutine = StartCoroutine(PlaySwingAnimation(1.2f, false)); // Faster combo
+                animationCoroutine = StartCoroutine(PlaySwingAnimation(1.2f, false));
                 break;
         }
-
-        /* COMMENTED OUT ANIMATOR VERSION
-        if (weaponAnimator == null)
-            return;
-
-        string triggerName = lightAttackTrigger;
-        switch (attackType)
-        {
-            case MeleeAttackType.Heavy:
-                triggerName = heavyAttackTrigger;
-                break;
-            case MeleeAttackType.Combo:
-                triggerName = comboAttackTrigger;
-                break;
-        }
-
-        weaponAnimator.SetTrigger(triggerName);
-        */
     }
 
-    /// <summary>
-    /// CODE-BASED SWING ANIMATION
-    /// </summary>
     private IEnumerator PlaySwingAnimation(float speedMultiplier, bool isHeavyAttack)
     {
         isAnimating = true;
@@ -666,127 +574,48 @@ public class MeleeController : MonoBehaviour
         animationCoroutine = null;
     }
 
-    /// <summary>
-    /// Start block animation
-    /// </summary>
-    private void StartBlockAnimation()
+    #endregion
+
+    #region Blocking System
+
+    public void StartBlock()
     {
-        if (animationCoroutine != null)
-        {
-            StopCoroutine(animationCoroutine);
-        }
-        animationCoroutine = StartCoroutine(PlayBlockAnimation(true));
+        if (weaponData == null || !weaponData.canBlock || isAttacking) return;
+        isBlocking = true;
+        if (debugAttacks) Debug.Log($"Started blocking with {weaponData.weaponName}");
     }
 
-    /// <summary>
-    /// Stop block animation
-    /// </summary>
-    private void StopBlockAnimation()
+    public void StopBlock()
     {
-        if (animationCoroutine != null)
-        {
-            StopCoroutine(animationCoroutine);
-        }
-        animationCoroutine = StartCoroutine(PlayBlockAnimation(false));
+        if (!isBlocking) return;
+        isBlocking = false;
+        if (debugAttacks) Debug.Log($"Stopped blocking with {weaponData.weaponName}");
     }
 
-    /// <summary>
-    /// CODE-BASED BLOCK ANIMATION
-    /// </summary>
-    private IEnumerator PlayBlockAnimation(bool blocking)
+    public bool IsBlocking()
     {
-        Vector3 startPos = transform.localPosition;
-        Vector3 startRot = transform.localEulerAngles;
-
-        Vector3 targetPos = blocking ? originalPosition + new Vector3(-0.2f, 0.1f, -0.3f) : originalPosition;
-        Vector3 targetRot = blocking ? originalRotation + new Vector3(-10f, -15f, 5f) : originalRotation;
-
-        float duration = 0.3f;
-        float elapsed = 0f;
-
-        while (elapsed < duration)
-        {
-            float t = elapsed / duration;
-            transform.localPosition = Vector3.Lerp(startPos, targetPos, t);
-            transform.localEulerAngles = Vector3.Lerp(startRot, targetRot, t);
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        transform.localPosition = targetPos;
-        transform.localEulerAngles = targetRot;
-
-        animationCoroutine = null;
+        return isBlocking;
     }
 
-    /// <summary>
-    /// Spawn trail effect for attack
-    /// </summary>
-    private void SpawnTrailEffect()
+    public float ApplyBlockDamageReduction(float incomingDamage)
     {
-        if (weaponData.meleeTrailEffect != null && trailPoint != null)
-        {
-            currentTrailEffect = Instantiate(weaponData.meleeTrailEffect, trailPoint.position, trailPoint.rotation);
-            currentTrailEffect.transform.SetParent(trailPoint);
-        }
+        if (!isBlocking || weaponData == null || !weaponData.canBlock)
+            return incomingDamage;
+
+        float reducedDamage = incomingDamage * (1f - weaponData.blockDamageReduction);
+        Debug.Log($"Blocked! Damage: {incomingDamage} → {reducedDamage}");
+        return reducedDamage;
     }
 
-    /// <summary>
-    /// Clean up trail effect
-    /// </summary>
-    private void CleanupTrailEffect()
+    public int GetComboCount()
     {
-        if (currentTrailEffect != null)
-        {
-            // Detach from weapon and let it finish naturally
-            currentTrailEffect.transform.SetParent(null);
-            Destroy(currentTrailEffect, 1f);
-            currentTrailEffect = null;
-        }
+        return currentCombo;
     }
 
-    /// <summary>
-    /// Spawn impact effect at hit location
-    /// </summary>
-    private void SpawnImpactEffect(Vector3 position, Vector3 normal)
+    public void ResetCombo()
     {
-        GameObject effectPrefab = weaponData.meleeImpactParticles != null ?
-            weaponData.meleeImpactParticles : weaponData.impactParticles;
-
-        if (effectPrefab != null)
-        {
-            Quaternion rotation = Quaternion.LookRotation(normal);
-            GameObject effect = Instantiate(effectPrefab, position, rotation);
-            Destroy(effect, 2f);
-        }
-    }
-
-    /// <summary>
-    /// Attack cooldown coroutine
-    /// </summary>
-    private IEnumerator AttackCooldown()
-    {
-        yield return new WaitForSeconds(weaponData.meleeCooldown);
-        canAttack = true;
-    }
-
-    /// <summary>
-    /// Update combo timer
-    /// </summary>
-    private void UpdateComboTimer()
-    {
-        if (currentCombo > 0 && Time.time - lastComboTime > weaponData.comboWindow)
-        {
-            ResetCombo();
-        }
-    }
-
-    /// <summary>
-    /// Update various cooldowns
-    /// </summary>
-    private void UpdateCooldowns()
-    {
-        // Additional cooldown logic can go here
+        currentCombo = 0;
+        lastComboTime = 0f;
     }
 
     #endregion
@@ -795,8 +624,7 @@ public class MeleeController : MonoBehaviour
 
     void OnDrawGizmosSelected()
     {
-        if (!showDebugGizmos || weaponData == null)
-            return;
+        if (!showDebugGizmos || weaponData == null) return;
 
         Vector3 origin = attackPoint != null ? attackPoint.position : transform.position;
         Vector3 forward = playerCamera != null ? playerCamera.transform.forward : transform.forward;
@@ -809,29 +637,12 @@ public class MeleeController : MonoBehaviour
         Gizmos.color = Color.yellow;
         float halfArc = weaponData.meleeArc * 0.5f;
 
-        // Draw arc lines
         Vector3 leftBound = Quaternion.AngleAxis(-halfArc, Vector3.up) * forward * weaponData.meleeRange;
         Vector3 rightBound = Quaternion.AngleAxis(halfArc, Vector3.up) * forward * weaponData.meleeRange;
 
         Gizmos.DrawLine(origin, origin + leftBound);
         Gizmos.DrawLine(origin, origin + rightBound);
         Gizmos.DrawLine(origin, origin + forward * weaponData.meleeRange);
-
-        // Draw arc
-        for (int i = 0; i <= 20; i++)
-        {
-            float angle = Mathf.Lerp(-halfArc, halfArc, i / 20f);
-            Vector3 direction = Quaternion.AngleAxis(angle, Vector3.up) * forward;
-            Vector3 point = origin + direction * weaponData.meleeRange;
-
-            if (i > 0)
-            {
-                float prevAngle = Mathf.Lerp(-halfArc, halfArc, (i - 1) / 20f);
-                Vector3 prevDirection = Quaternion.AngleAxis(prevAngle, Vector3.up) * forward;
-                Vector3 prevPoint = origin + prevDirection * weaponData.meleeRange;
-                Gizmos.DrawLine(prevPoint, point);
-            }
-        }
 
         // Draw attack point
         if (attackPoint != null)

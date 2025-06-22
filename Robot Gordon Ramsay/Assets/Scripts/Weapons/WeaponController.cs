@@ -8,6 +8,7 @@ using UnityEngine.Events;
 /// <summary>
 /// Main weapon controller that handles firing, reloading, and weapon behavior - ENHANCED WITH MELEE
 /// Attach this to weapon prefabs and assign WeaponData
+/// FIXED: Better melee setup and input handling + ADS infinite loop fix
 /// </summary>
 public class WeaponController : MonoBehaviour
 {
@@ -31,7 +32,6 @@ public class WeaponController : MonoBehaviour
     [Header("Debug")]
     [Tooltip("Show debug information in scene view")]
     public bool showDebugInfo = false;
-
     #endregion
 
     #region Public Methods for External Scripts
@@ -192,11 +192,14 @@ public class WeaponController : MonoBehaviour
     private int burstShotsFired = 0;
     private Coroutine burstCoroutine;
 
-    // ADS system
+    // ADS system - FIXED
     private bool isAiming = false;
+    private bool isTransitioningADS = false; // ADDED: Track transition state
     private float originalFOV;
     private Vector3 basePosition;
     private Vector3 baseRotation;
+    private Vector3 targetPosition; // ADDED: Current target position
+    private Vector3 targetRotation; // ADDED: Current target rotation
 
     // Recoil system
     private Vector3 currentRecoilOffset = Vector3.zero;
@@ -204,6 +207,8 @@ public class WeaponController : MonoBehaviour
 
     // Effects
     private GameObject currentMuzzleFlash;
+
+    private MeleeController simpleMeleeController;
 
     #endregion
 
@@ -238,9 +243,6 @@ public class WeaponController : MonoBehaviour
             }
         }
 
-        // Get melee controller if this is a melee weapon
-        meleeController = GetComponent<MeleeController>();
-
         // Setup fire point if not assigned
         if (firePoint == null)
         {
@@ -251,7 +253,14 @@ public class WeaponController : MonoBehaviour
         {
             muzzlePoint = firePoint;
         }
+
+        // CRITICAL FIX: Setup melee controller EARLY in Awake if this is a melee weapon
+        if (weaponData != null && weaponData.IsMeleeWeapon())
+        {
+            SetupSimpleMeleeController();
+        }
     }
+
 
     void Start()
     {
@@ -264,6 +273,11 @@ public class WeaponController : MonoBehaviour
                 reserveAmmo = weaponData.maxAmmo;
                 OnAmmoChanged?.Invoke(currentAmmo, reserveAmmo);
             }
+            else
+            {
+                // Double-check melee controller setup
+                EnsureSimpleMeleeControllerSetup();
+            }
 
             Debug.Log($"Weapon initialized: {weaponData.weaponName} ({(weaponData.IsMeleeWeapon() ? "Melee" : "Ranged")})");
         }
@@ -275,11 +289,8 @@ public class WeaponController : MonoBehaviour
 
     void Update()
     {
-        // Handle FOV changes
-        HandleFOV();
-
-        // Handle weapon position and rotation
-        HandleWeaponPosition();
+        // FIXED: Handle weapon position with proper transition tracking
+        HandleWeaponPositionFixed();
     }
 
     void OnDestroy()
@@ -293,10 +304,169 @@ public class WeaponController : MonoBehaviour
 
     #endregion
 
-    #region ADS System
+    #region Melee Controller Setup - FIXED
 
     /// <summary>
-    /// Start or stop aiming down sights / blocking
+    /// Setup melee controller with proper attack points
+    /// </summary>
+    private void SetupMeleeController()
+    {
+        if (weaponData == null) return;
+
+        Debug.Log($"🔧 Setting up MeleeController for {weaponData.weaponName}");
+
+        // Get the MeleeController component
+        MeleeController meleeController = GetComponent<MeleeController>();
+        if (meleeController == null)
+        {
+            Debug.LogError("No MeleeController found! This method should only be called after adding MeleeController.");
+            return;
+        }
+
+        // Create AttackPoint if missing
+        Transform attackPoint = transform.Find("AttackPoint");
+        if (attackPoint == null)
+        {
+            GameObject attackPointObj = new GameObject("AttackPoint");
+            attackPointObj.transform.SetParent(transform);
+
+            // Position based on weapon type
+            Vector3 attackPos = GetAttackPointPosition(weaponData.weaponType);
+            attackPointObj.transform.localPosition = attackPos;
+            attackPoint = attackPointObj.transform;
+
+            Debug.Log($"✅ Created AttackPoint at {attackPos}");
+        }
+
+        // Create TrailPoint if missing
+        Transform trailPoint = transform.Find("TrailPoint");
+        if (trailPoint == null)
+        {
+            GameObject trailPointObj = new GameObject("TrailPoint");
+            trailPointObj.transform.SetParent(transform);
+            trailPointObj.transform.localPosition = attackPoint.localPosition * 0.7f;
+            trailPoint = trailPointObj.transform;
+
+            Debug.Log($"✅ Created TrailPoint");
+        }
+
+        // Assign to MeleeController
+        meleeController.attackPoint = attackPoint;
+        meleeController.trailPoint = trailPoint;
+
+        Debug.Log($"✅ MeleeController setup complete for {weaponData.weaponName}");
+    }
+
+    private Vector3 GetAttackPointPosition(WeaponType weaponType)
+    {
+        switch (weaponType)
+        {
+            case WeaponType.Knife: return new Vector3(0f, 0f, 0.8f);
+            case WeaponType.Sword: return new Vector3(0f, 0f, 1.8f);
+            case WeaponType.Axe: return new Vector3(0f, 0f, 1.4f);
+            case WeaponType.Hammer: return new Vector3(0f, 0f, 1.2f);
+            case WeaponType.Bat: return new Vector3(0f, 0f, 1.6f);
+            case WeaponType.Crowbar: return new Vector3(0f, 0f, 1.3f); // CROWBAR SPECIFIC
+            case WeaponType.Fists: return new Vector3(0f, 0f, 0.6f);
+            default: return new Vector3(0f, 0f, 1.0f);
+        }
+    }
+
+    private void ForceCreateAttackPoints()
+    {
+        // Setup attack point with GUARANTEED creation
+        Transform attackPoint = transform.Find("AttackPoint");
+        if (attackPoint == null)
+        {
+            Debug.Log("Creating AttackPoint...");
+            GameObject attackPointObj = new GameObject("AttackPoint");
+            attackPointObj.transform.SetParent(transform);
+
+            // Better attack point positioning based on weapon type
+            Vector3 attackPosition = GetOptimalAttackPointPosition();
+            attackPointObj.transform.localPosition = attackPosition;
+            attackPoint = attackPointObj.transform;
+
+            Debug.Log($"✅ Created AttackPoint at {attackPosition}");
+        }
+
+        // FORCE assignment to MeleeController
+        if (meleeController != null)
+        {
+            meleeController.attackPoint = attackPoint;
+            Debug.Log($"✅ Assigned AttackPoint to MeleeController");
+        }
+
+        // Setup trail point with GUARANTEED creation
+        Transform trailPoint = transform.Find("TrailPoint");
+        if (trailPoint == null)
+        {
+            Debug.Log("Creating TrailPoint...");
+            GameObject trailPointObj = new GameObject("TrailPoint");
+            trailPointObj.transform.SetParent(transform);
+            trailPointObj.transform.localPosition = attackPoint.localPosition * 0.7f; // Closer to handle
+            trailPoint = trailPointObj.transform;
+
+            Debug.Log($"✅ Created TrailPoint");
+        }
+
+        // FORCE assignment to MeleeController
+        if (meleeController != null)
+        {
+            meleeController.trailPoint = trailPoint;
+            Debug.Log($"✅ Assigned TrailPoint to MeleeController");
+        }
+    }
+
+    /// <summary>
+    /// Get optimal attack point position based on weapon type
+    /// </summary>
+    private Vector3 GetOptimalAttackPointPosition()
+    {
+        if (weaponData == null) return new Vector3(0f, 0f, 1.0f);
+
+        switch (weaponData.weaponType)
+        {
+            case WeaponType.Knife:
+                return new Vector3(0f, 0f, 0.8f); // Short reach
+            case WeaponType.Sword:
+                return new Vector3(0f, 0f, 1.8f); // Long reach
+            case WeaponType.Axe:
+                return new Vector3(0f, 0f, 1.4f); // Medium reach
+            case WeaponType.Hammer:
+                return new Vector3(0f, 0f, 1.2f); // Medium reach
+            case WeaponType.Bat:
+                return new Vector3(0f, 0f, 1.6f); // Long reach
+            case WeaponType.Crowbar:
+                return new Vector3(0f, 0f, 1.3f); // Medium-long reach
+            case WeaponType.Fists:
+                return new Vector3(0f, 0f, 0.6f); // Very short reach
+            default:
+                return new Vector3(0f, 0f, 1.0f); // Default
+        }
+    }
+
+    /// <summary>
+    /// Ensure melee controller is properly setup
+    /// </summary>
+    private void EnsureMeleeControllerSetup()
+    {
+        if (weaponData == null || !weaponData.IsMeleeWeapon())
+            return;
+
+        if (meleeController == null)
+        {
+            Debug.LogWarning($"⚠️ MeleeController missing for {weaponData.weaponName}");
+            SetupMeleeController();
+        }
+    }
+
+    #endregion
+
+    #region ADS System - COMPLETELY FIXED
+
+    /// <summary>
+    /// Start or stop aiming down sights / blocking - FIXED
     /// </summary>
     public void SetAiming(bool aiming)
     {
@@ -305,18 +475,70 @@ public class WeaponController : MonoBehaviour
             Debug.Log($"SetAiming: {aiming}");
             isAiming = aiming;
 
-            // Handle melee blocking
-            if (weaponData != null && weaponData.IsMeleeWeapon() && meleeController != null)
+            // Handle melee blocking - SIMPLE VERSION
+            if (weaponData != null && weaponData.IsMeleeWeapon() && simpleMeleeController != null)
             {
                 if (aiming && weaponData.canBlock)
                 {
-                    meleeController.StartBlock();
+                    simpleMeleeController.StartBlock();
                 }
                 else
                 {
-                    meleeController.StopBlock();
+                    simpleMeleeController.StopBlock();
                 }
             }
+        }
+    }
+
+    private void EnsureSimpleMeleeControllerSetup()
+    {
+        if (weaponData == null || !weaponData.IsMeleeWeapon())
+            return;
+
+        if (simpleMeleeController == null)
+        {
+            Debug.LogWarning($"⚠️ SimpleMeleeController missing for {weaponData.weaponName}");
+            SetupSimpleMeleeController();
+        }
+    }
+
+    private void SetupSimpleMeleeController()
+    {
+        if (weaponData == null || !weaponData.IsMeleeWeapon())
+            return;
+
+        Debug.Log($"🔧 Setting up SimpleMeleeController for {weaponData.weaponName}");
+
+        // Get or add SimpleMeleeController
+        simpleMeleeController = GetComponent<MeleeController>();
+        if (simpleMeleeController == null)
+        {
+            simpleMeleeController = gameObject.AddComponent<MeleeController>();
+            Debug.Log($"✅ Added SimpleMeleeController component");
+        }
+
+        Debug.Log($"✅ SimpleMeleeController configured for {weaponData.weaponName}");
+    }
+
+    /// <summary>
+    /// Update target positions based on current aiming state
+    /// </summary>
+    private void UpdateTargetPositions()
+    {
+        if (weaponData == null)
+            return;
+
+        if (isAiming)
+        {
+            // Set ADS targets
+            targetPosition = weaponData.adsPosition + currentRecoilOffset;
+            targetRotation = weaponData.adsRotation;
+        }
+        else
+        {
+            // Set base targets
+            targetPosition = basePosition + currentRecoilOffset;
+            targetRotation = baseRotation;
         }
     }
 
@@ -329,11 +551,11 @@ public class WeaponController : MonoBehaviour
     }
 
     /// <summary>
-    /// Check if currently transitioning ADS (legacy compatibility)
+    /// Check if currently transitioning ADS
     /// </summary>
     public bool IsTransitioningADS()
     {
-        return false; // We use simple direct transitions now
+        return isTransitioningADS;
     }
 
     /// <summary>
@@ -341,126 +563,643 @@ public class WeaponController : MonoBehaviour
     /// </summary>
     public void SetBasePosition(Vector3 position, Vector3 rotation)
     {
-        // Ensure position is valid and visible
-        if (position.z < 0.3f) position.z = 0.5f;
-        if (position.z > 2f) position.z = 1f;
-
+        // Store the base values
         basePosition = position;
         baseRotation = rotation;
 
-        // Immediately set the weapon to the correct rotation
-        transform.localEulerAngles = rotation;
-
-        Debug.Log($"Base position set: {position}, rotation: {rotation}");
-    }
-
-    /// <summary>
-    /// Handle FOV changes for ADS
-    /// </summary>
-    private void HandleFOV()
-    {
-        if (playerCamera == null || weaponData == null)
-            return;
-
-        // Only handle ADS FOV - don't interfere with sprint FOV
-        if (isAiming)
+        // CRITICAL FIX: Override ADS positions if they're causing face-shooting
+        if (weaponData != null)
         {
-            // Set target FOV for ADS
-            float desiredFOV = weaponData.adsFOV > 0f ? weaponData.adsFOV : originalFOV;
-
-            // Only update if we're not already at the desired FOV
-            if (Mathf.Abs(playerCamera.fieldOfView - desiredFOV) > 1f)
+            // FIXED ADS positions that won't point at your face
+            if (weaponData.IsMeleeWeapon())
             {
-                // Use a fixed speed for consistent FOV changes
-                float fovChangeSpeed = 60f; // Fixed speed in FOV units per second
-                playerCamera.fieldOfView = Mathf.MoveTowards(playerCamera.fieldOfView, desiredFOV, fovChangeSpeed * Time.deltaTime);
+                // Melee blocking - move closer to body, slight up angle
+                weaponData.adsPosition = new Vector3(0.15f, -0.05f, 0.3f);
+                weaponData.adsRotation = new Vector3(-15f, 0f, 0f); // Look down slightly
             }
-            else if (Mathf.Abs(playerCamera.fieldOfView - desiredFOV) <= 1f && Mathf.Abs(playerCamera.fieldOfView - desiredFOV) > 0.1f)
+            else
             {
-                // Snap to final value when very close
-                playerCamera.fieldOfView = desiredFOV;
+                // Ranged ADS - center the weapon, move forward slightly
+                weaponData.adsPosition = new Vector3(0f, -0.1f, 0.5f);
+                weaponData.adsRotation = rotation; // Keep same rotation as base
             }
         }
-        // Don't restore FOV when not aiming - let other systems (like sprint) handle it
+
+        // Update target positions
+        UpdateTargetPositions();
+
+        Debug.Log($"✅ FIXED base position for {weaponData?.weaponName}: {position}");
+        Debug.Log($"   ADS position: {weaponData?.adsPosition}");
+        Debug.Log($"   ADS rotation: {weaponData?.adsRotation}");
     }
 
+    [ContextMenu("Fix ADS Pointing At Face")]
+    public void FixADSPointingAtFace()
+    {
+        if (weaponData == null)
+        {
+            Debug.LogError("No WeaponData to fix!");
+            return;
+        }
+
+        Debug.Log($"🔧 EMERGENCY FIX: Correcting ADS for {weaponData.weaponName}");
+
+        if (weaponData.IsMeleeWeapon())
+        {
+            // Melee weapons: blocking position
+            weaponData.adsPosition = new Vector3(0.15f, -0.05f, 0.3f);
+            weaponData.adsRotation = new Vector3(-15f, 0f, 0f);
+            Debug.Log("✅ Fixed MELEE blocking position");
+        }
+        else
+        {
+            // Ranged weapons: proper ADS
+            weaponData.adsPosition = new Vector3(0f, -0.1f, 0.5f);
+            weaponData.adsRotation = new Vector3(0f, 180f, 0f); // Keep the 180 flip
+            Debug.Log("✅ Fixed RANGED ADS position");
+        }
+
+        // Update immediately if this weapon is equipped
+        if (isAiming)
+        {
+            isAiming = false; // Reset ADS state
+            SetAiming(true); // Re-enter ADS with fixed positions
+        }
+
+        Debug.Log($"   New ADS position: {weaponData.adsPosition}");
+        Debug.Log($"   New ADS rotation: {weaponData.adsRotation}");
+    }
+
+    [ContextMenu("Debug Crowbar Setup")]
+    public void DebugCrowbarSetup()
+    {
+        if (weaponData == null)
+        {
+            Debug.LogError("❌ NO WEAPONDATA!");
+            return;
+        }
+
+        Debug.Log("=== CROWBAR DEBUG ===");
+        Debug.Log($"Weapon Name: {weaponData.weaponName}");
+        Debug.Log($"Weapon Type: {weaponData.weaponType}");
+        Debug.Log($"Firing Mode: {weaponData.firingMode}");
+        Debug.Log($"Is Melee: {weaponData.IsMeleeWeapon()}");
+        Debug.Log($"Melee Range: {weaponData.meleeRange}");
+        Debug.Log($"Melee Damage: {weaponData.damage}");
+
+        // Check MeleeController
+        MeleeController meleeController = GetComponent<MeleeController>();
+        Debug.Log($"Has MeleeController: {meleeController != null}");
+
+        if (meleeController != null)
+        {
+            Debug.Log($"Attack Point: {(meleeController.attackPoint != null ? meleeController.attackPoint.name : "NULL")}");
+            Debug.Log($"Trail Point: {(meleeController.trailPoint != null ? meleeController.trailPoint.name : "NULL")}");
+
+            if (meleeController.attackPoint != null)
+            {
+                Debug.Log($"Attack Point Position: {meleeController.attackPoint.localPosition}");
+            }
+        }
+
+        // Check if properly configured as melee
+        if (weaponData.firingMode != FiringMode.Melee)
+        {
+            Debug.LogError("❌ CROWBAR NOT SET TO MELEE MODE!");
+            Debug.LogError("   Fix: Set firingMode = FiringMode.Melee in WeaponData");
+        }
+        else
+        {
+            Debug.Log("✅ Crowbar properly configured as melee weapon");
+        }
+
+        Debug.Log("====================");
+    }
+
+
     /// <summary>
-    /// Handle weapon position and rotation
+    /// Handle weapon position and rotation - COMPLETELY FIXED
     /// </summary>
-    private void HandleWeaponPosition()
+    private void HandleWeaponPositionFixed()
     {
         if (weaponData == null)
             return;
 
-        float posSpeed = weaponData.adsSpeed * Time.deltaTime;
+        // Update targets when recoil changes
+        UpdateTargetPositions();
 
-        if (isAiming)
+        // Smooth transition to target position
+        float posSpeed = weaponData.adsSpeed * Time.deltaTime;
+        Vector3 newPosition = Vector3.Lerp(transform.localPosition, targetPosition, posSpeed);
+        Vector3 newRotation = Vector3.Lerp(transform.localEulerAngles, targetRotation, posSpeed);
+
+        // Apply positions
+        transform.localPosition = newPosition;
+        transform.localRotation = Quaternion.Euler(newRotation);
+
+        // Check if transition is complete
+        if (isTransitioningADS)
         {
-            // Move to ADS position
-            Vector3 targetPos = weaponData.adsPosition + currentRecoilOffset;
-            transform.localPosition = Vector3.Lerp(transform.localPosition, targetPos, posSpeed);
+            float positionDistance = Vector3.Distance(transform.localPosition, targetPosition);
+            float rotationDistance = Vector3.Distance(transform.localEulerAngles, targetRotation);
+
+            // FIXED: Use proper threshold for transition completion
+            if (positionDistance < 0.01f && rotationDistance < 1f)
+            {
+                isTransitioningADS = false;
+                // Snap to exact target to prevent floating point drift
+                transform.localPosition = targetPosition;
+                transform.localRotation = Quaternion.Euler(targetRotation);
+
+                Debug.Log($"ADS transition complete for {weaponData.weaponName}");
+            }
+        }
+
+        // Handle FOV separately and properly
+        HandleFOVTransition();
+    }
+
+    /// <summary>
+    /// Handle FOV transitions properly - FIXED
+    /// </summary>
+    private void HandleFOVTransition()
+    {
+        if (playerCamera == null || weaponData == null)
+            return;
+
+        float targetFOV;
+        if (isAiming && weaponData.adsFOV > 0f)
+        {
+            targetFOV = weaponData.adsFOV;
         }
         else
         {
-            // Move to hip fire position
-            Vector3 targetPos = basePosition + currentRecoilOffset;
-            transform.localPosition = Vector3.Lerp(transform.localPosition, targetPos, posSpeed);
+            targetFOV = originalFOV;
+        }
 
-            // INSTANTLY snap to correct rotation - no lerping
-            transform.localEulerAngles = baseRotation;
+        // Only change FOV if it's different enough to matter
+        if (Mathf.Abs(playerCamera.fieldOfView - targetFOV) > 0.5f)
+        {
+            float fovSpeed = weaponData.adsSpeed * 10f * Time.deltaTime; // Faster FOV transition
+            playerCamera.fieldOfView = Mathf.MoveTowards(playerCamera.fieldOfView, targetFOV, fovSpeed);
         }
     }
 
+    private void PerformDirectMeleeAttack()
+    {
+        Debug.Log($"🗡️ DIRECT MELEE ATTACK - {weaponData.weaponName}");
+
+        Vector3 attackOrigin = playerCamera.transform.position;
+        Vector3 attackDirection = playerCamera.transform.forward;
+        float range = weaponData.meleeRange;
+
+        Debug.Log($"Attack from: {attackOrigin} in direction: {attackDirection} with range: {range}");
+
+        // Simple sphere overlap - most reliable
+        Vector3 sphereCenter = attackOrigin + attackDirection * (range * 0.5f);
+        Collider[] hits = Physics.OverlapSphere(sphereCenter, range);
+
+        Debug.Log($"Found {hits.Length} potential targets");
+
+        bool hitSomething = false;
+
+        foreach (Collider hit in hits)
+        {
+            if (hit == null || hit.transform.IsChildOf(transform.root))
+                continue;
+
+            Debug.Log($"Checking target: {hit.name}");
+
+            // Check if in attack arc
+            Vector3 dirToTarget = (hit.transform.position - attackOrigin).normalized;
+            float angle = Vector3.Angle(attackDirection, dirToTarget);
+
+            if (angle <= weaponData.meleeArc * 0.5f)
+            {
+                Debug.Log($"✅ TARGET IN ARC: {hit.name}");
+
+                // Try to damage
+                if (TryDamageTarget(hit.gameObject, weaponData.damage))
+                {
+                    hitSomething = true;
+                    Debug.Log($"💥 HIT {hit.name} for {weaponData.damage} damage!");
+
+                    // Apply knockback
+                    Rigidbody rb = hit.GetComponent<Rigidbody>();
+                    if (rb != null)
+                    {
+                        Vector3 force = dirToTarget * weaponData.meleeKnockbackForce;
+                        rb.AddForce(force, ForceMode.Impulse);
+                    }
+                }
+            }
+        }
+
+        if (!hitSomething)
+        {
+            Debug.Log("❌ MELEE ATTACK MISSED");
+        }
+
+        // Screen shake
+        if (cameraShake != null)
+        {
+            cameraShake.Shake(0.3f, 0.2f);
+        }
+    }
+
+    private bool TryDamageTarget(GameObject target, float damage)
+    {
+        // Try IDamageable
+        IDamageable damageable = target.GetComponent<IDamageable>();
+        if (damageable != null)
+        {
+            damageable.TakeDamage(damage);
+            return true;
+        }
+
+        // Try Health
+        Health health = target.GetComponent<Health>();
+        if (health != null)
+        {
+            health.TakeDamage(damage);
+            return true;
+        }
+
+        Debug.LogWarning($"No damage component on {target.name}");
+        return false;
+    }
+
+    private bool TryApplyDamage(GameObject target, float damage)
+    {
+        // Try IDamageable first
+        IDamageable damageable = target.GetComponent<IDamageable>();
+        if (damageable != null)
+        {
+            damageable.TakeDamage(damage);
+            Debug.Log($"💥 Applied {damage} damage via IDamageable");
+            return true;
+        }
+
+        // Try Health component
+        Health health = target.GetComponent<Health>();
+        if (health != null)
+        {
+            health.TakeDamage(damage);
+            Debug.Log($"💥 Applied {damage} damage via Health");
+            return true;
+        }
+
+        // Try any TakeDamage method
+        MonoBehaviour[] components = target.GetComponents<MonoBehaviour>();
+        foreach (var comp in components)
+        {
+            var method = comp.GetType().GetMethod("TakeDamage");
+            if (method != null && method.GetParameters().Length == 1)
+            {
+                try
+                {
+                    var paramType = method.GetParameters()[0].ParameterType;
+                    if (paramType == typeof(float))
+                    {
+                        method.Invoke(comp, new object[] { damage });
+                        Debug.Log($"💥 Applied {damage} damage via reflection");
+                        return true;
+                    }
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError($"Reflection damage failed: {e.Message}");
+                }
+            }
+        }
+
+        Debug.LogWarning($"No damage component found on {target.name}");
+        return false;
+    }
+
+
     #endregion
 
-    #region Firing System
+    #region Firing System - FIXED FOR MELEE
 
     /// <summary>
     /// Try to fire the weapon or perform melee attack - ENHANCED FOR MELEE
     /// </summary>
     public void TryFire(bool firePressed, bool fireHeld)
     {
-        if (weaponData == null || isFiring)
-            return;
-
-        // Handle melee weapons
-        if (weaponData.IsMeleeWeapon())
+        if (weaponData == null)
         {
-            if (meleeController != null && firePressed)
-            {
-                // Light attack on primary fire, heavy attack if holding aim
-                meleeController.TryAttack(!isAiming, isAiming);
-                weaponEvents?.OnMeleeAttack?.Invoke();
-            }
+            Debug.LogWarning("TryFire called but weaponData is null!");
             return;
         }
 
-        // Handle ranged weapons (existing logic)
-        bool canFire = false;
+        Debug.Log($"🔫 WEAPON INPUT: {weaponData.weaponName} - Pressed: {firePressed}, Held: {fireHeld}");
 
+        // MELEE WEAPONS - CROWBAR FIX
+        if (weaponData.firingMode == FiringMode.Melee || weaponData.weaponType == WeaponType.Crowbar)
+        {
+            if (firePressed)
+            {
+                Debug.Log($"🗡️ MELEE ATTACK STARTING!");
+                PerformDirectMeleeAttack();
+                return;
+            }
+        }
+
+        // RANGED WEAPONS - GUN FIX
+        if (currentAmmo <= 0)
+        {
+            Debug.Log("❌ NO AMMO!");
+            return;
+        }
+
+        bool shouldFire = false;
         switch (weaponData.firingMode)
         {
             case FiringMode.SemiAuto:
-                canFire = firePressed;
+                shouldFire = firePressed;
                 break;
             case FiringMode.FullAuto:
-                canFire = fireHeld;
-                break;
-            case FiringMode.Burst:
-                canFire = firePressed;
+                shouldFire = fireHeld;
                 break;
         }
 
-        // Check fire rate
-        if (canFire && Time.time >= lastFireTime + weaponData.GetTimeBetweenShots())
+        if (shouldFire && Time.time >= lastFireTime + weaponData.GetTimeBetweenShots())
         {
-            if (weaponData.firingMode == FiringMode.Burst)
+            Debug.Log($"🔫 FIRING GUN: {weaponData.weaponName}!");
+            FireSingleShot();
+        }
+    }
+
+    private void PerformSimpleMeleeAttack(bool isHeavyAttack)
+    {
+        if (weaponData == null)
+        {
+            Debug.LogError("No weapon data for melee attack!");
+            return;
+        }
+
+        Debug.Log($"🗡️ PERFORMING SIMPLE MELEE ATTACK with {weaponData.weaponName}");
+        Debug.Log($"   Heavy Attack: {isHeavyAttack}");
+        Debug.Log($"   Melee Range: {weaponData.meleeRange}");
+        Debug.Log($"   Melee Arc: {weaponData.meleeArc}");
+        Debug.Log($"   Damage: {weaponData.damage}");
+
+        Vector3 attackOrigin = playerCamera.transform.position;
+        Vector3 attackDirection = playerCamera.transform.forward;
+
+        Debug.Log($"   Attack Origin: {attackOrigin}");
+        Debug.Log($"   Attack Direction: {attackDirection}");
+
+        // SIMPLE SPHERE OVERLAP - Most reliable method
+        Vector3 sphereCenter = attackOrigin + attackDirection * (weaponData.meleeRange * 0.5f);
+        Collider[] hitColliders = Physics.OverlapSphere(sphereCenter, weaponData.meleeRange);
+
+        Debug.Log($"   Sphere center: {sphereCenter}");
+        Debug.Log($"   Found {hitColliders.Length} colliders in range");
+
+        bool hitSomething = false;
+        int targetsHit = 0;
+
+        foreach (Collider col in hitColliders)
+        {
+            if (col == null)
             {
-                StartBurstFire();
+                Debug.Log("   Skipping null collider");
+                continue;
+            }
+
+            // Skip self and child objects
+            if (col.transform.IsChildOf(transform.root))
+            {
+                Debug.Log($"   Skipping self/child: {col.name}");
+                continue;
+            }
+
+            // Check if target is in attack arc
+            Vector3 directionToTarget = (col.transform.position - attackOrigin).normalized;
+            float angleToTarget = Vector3.Angle(attackDirection, directionToTarget);
+
+            Debug.Log($"   Target: {col.name}");
+            Debug.Log($"     Position: {col.transform.position}");
+            Debug.Log($"     Direction to target: {directionToTarget}");
+            Debug.Log($"     Angle to target: {angleToTarget:F1}°");
+            Debug.Log($"     Max allowed angle: {weaponData.meleeArc * 0.5f:F1}°");
+
+            if (angleToTarget <= weaponData.meleeArc * 0.5f)
+            {
+                Debug.Log($"   ✅ {col.name} is in attack arc - applying damage!");
+
+                // Calculate damage
+                float damage = weaponData.damage;
+                if (isHeavyAttack) damage *= 1.5f;
+
+                // Try to apply damage
+                bool damageApplied = ApplySimpleDamage(col.gameObject, damage);
+
+                if (damageApplied)
+                {
+                    hitSomething = true;
+                    targetsHit++;
+                    Debug.Log($"   💥 SUCCESSFULLY HIT {col.name} for {damage} damage!");
+
+                    // Apply knockback
+                    ApplyMeleeKnockback(col, directionToTarget);
+
+                    // Screen shake
+                    if (cameraShake != null)
+                    {
+                        cameraShake.Shake(weaponData.meleeShakeIntensity, 0.2f);
+                    }
+                }
+                else
+                {
+                    Debug.Log($"   ⚠️ Hit {col.name} but couldn't apply damage (no damage component)");
+                    // Still count as hit for visual feedback
+                    hitSomething = true;
+                    targetsHit++;
+                    CreateHitFeedback(col.transform.position, damage);
+                }
             }
             else
             {
-                FireSingleShot();
+                Debug.Log($"   ❌ {col.name} is outside attack arc");
+            }
+        }
+
+        // Show debug visualization
+        Debug.DrawRay(attackOrigin, attackDirection * weaponData.meleeRange, Color.red, 2f);
+
+        Debug.Log($"=== MELEE ATTACK COMPLETE ===");
+        Debug.Log($"Targets hit: {targetsHit}");
+        Debug.Log($"Attack successful: {hitSomething}");
+
+        if (!hitSomething)
+        {
+            Debug.Log("❌ NO TARGETS HIT");
+            Debug.Log("   Possible causes:");
+            Debug.Log("   - No targets within range (" + weaponData.meleeRange + "m)");
+            Debug.Log("   - Targets outside attack arc (" + weaponData.meleeArc + "°)");
+            Debug.Log("   - Targets don't have colliders");
+            Debug.Log("   Try: Get closer, face target directly, check target has collider");
+        }
+    }
+
+    private bool ApplySimpleDamage(GameObject target, float damage)
+    {
+        if (target == null) return false;
+
+        Debug.Log($"Trying to apply {damage} damage to {target.name}...");
+
+        // Method 1: IDamageable interface
+        IDamageable damageable = target.GetComponent<IDamageable>();
+        if (damageable != null)
+        {
+            try
+            {
+                damageable.TakeDamage(damage);
+                Debug.Log($"✅ Applied damage via IDamageable");
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"IDamageable failed: {e.Message}");
+            }
+        }
+
+        // Method 2: Health component
+        Health health = target.GetComponent<Health>();
+        if (health != null)
+        {
+            try
+            {
+                health.TakeDamage(damage);
+                Debug.Log($"✅ Applied damage via Health component");
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogError($"Health failed: {e.Message}");
+            }
+        }
+
+        // Method 3: Any script with TakeDamage method
+        MonoBehaviour[] scripts = target.GetComponents<MonoBehaviour>();
+        foreach (var script in scripts)
+        {
+            if (script == null) continue;
+
+            var methods = script.GetType().GetMethods();
+            foreach (var method in methods)
+            {
+                if (method.Name == "TakeDamage" && method.GetParameters().Length == 1)
+                {
+                    try
+                    {
+                        var paramType = method.GetParameters()[0].ParameterType;
+                        if (paramType == typeof(float))
+                        {
+                            method.Invoke(script, new object[] { damage });
+                            Debug.Log($"✅ Applied damage via {script.GetType().Name}.TakeDamage(float)");
+                            return true;
+                        }
+                        else if (paramType == typeof(int))
+                        {
+                            method.Invoke(script, new object[] { (int)damage });
+                            Debug.Log($"✅ Applied damage via {script.GetType().Name}.TakeDamage(int)");
+                            return true;
+                        }
+                    }
+                    catch (System.Exception e)
+                    {
+                        Debug.LogError($"Method invoke failed: {e.Message}");
+                    }
+                }
+            }
+        }
+
+        Debug.LogWarning($"No damage component found on {target.name}");
+        Debug.LogWarning($"Available components: {string.Join(", ", System.Array.ConvertAll(target.GetComponents<Component>(), c => c.GetType().Name))}");
+
+        return false;
+    }
+
+    private void ApplyMeleeKnockback(Collider target, Vector3 direction)
+    {
+        Rigidbody rb = target.GetComponent<Rigidbody>();
+        if (rb != null && weaponData != null)
+        {
+            Vector3 knockbackForce = direction * weaponData.meleeKnockbackForce;
+            knockbackForce += Vector3.up * weaponData.meleeKnockbackUpforce;
+            rb.AddForce(knockbackForce, ForceMode.Impulse);
+            Debug.Log($"Applied melee knockback: {knockbackForce}");
+        }
+    }
+
+    /// <summary>
+    /// Create visual feedback when hitting something
+    /// </summary>
+    private void CreateHitFeedback(Vector3 position, float damage)
+    {
+        GameObject feedbackObj = new GameObject("MeleeHitFeedback");
+        feedbackObj.transform.position = position + Vector3.up;
+
+        TextMesh textMesh = feedbackObj.AddComponent<TextMesh>();
+        textMesh.text = $"HIT! -{damage:F0}";
+        textMesh.color = Color.red;
+        textMesh.fontSize = 25;
+        textMesh.anchor = TextAnchor.MiddleCenter;
+
+        if (playerCamera != null)
+        {
+            feedbackObj.transform.LookAt(playerCamera.transform);
+            feedbackObj.transform.Rotate(0, 180, 0);
+        }
+
+        Destroy(feedbackObj, 2f);
+    }
+
+    public static class DebugExtensions
+    {
+        public static void DrawWireSphere(Vector3 center, float radius, Color color, float duration)
+        {
+            // Draw wireframe sphere using multiple circles
+            int segments = 16;
+
+            // XY plane
+            for (int i = 0; i < segments; i++)
+            {
+                float angle1 = i * Mathf.PI * 2f / segments;
+                float angle2 = (i + 1) * Mathf.PI * 2f / segments;
+
+                Vector3 point1 = center + new Vector3(Mathf.Cos(angle1) * radius, Mathf.Sin(angle1) * radius, 0);
+                Vector3 point2 = center + new Vector3(Mathf.Cos(angle2) * radius, Mathf.Sin(angle2) * radius, 0);
+
+                Debug.DrawLine(point1, point2, color, duration);
+            }
+
+            // XZ plane  
+            for (int i = 0; i < segments; i++)
+            {
+                float angle1 = i * Mathf.PI * 2f / segments;
+                float angle2 = (i + 1) * Mathf.PI * 2f / segments;
+
+                Vector3 point1 = center + new Vector3(Mathf.Cos(angle1) * radius, 0, Mathf.Sin(angle1) * radius);
+                Vector3 point2 = center + new Vector3(Mathf.Cos(angle2) * radius, 0, Mathf.Sin(angle2) * radius);
+
+                Debug.DrawLine(point1, point2, color, duration);
+            }
+
+            // YZ plane
+            for (int i = 0; i < segments; i++)
+            {
+                float angle1 = i * Mathf.PI * 2f / segments;
+                float angle2 = (i + 1) * Mathf.PI * 2f / segments;
+
+                Vector3 point1 = center + new Vector3(0, Mathf.Cos(angle1) * radius, Mathf.Sin(angle1) * radius);
+                Vector3 point2 = center + new Vector3(0, Mathf.Cos(angle2) * radius, Mathf.Sin(angle2) * radius);
+
+                Debug.DrawLine(point1, point2, color, duration);
             }
         }
     }
@@ -527,6 +1266,8 @@ public class WeaponController : MonoBehaviour
         {
             Debug.LogError($"Error triggering weapon effects: {e.Message}");
         }
+
+        isFiring = false;
     }
 
     /// <summary>
@@ -586,22 +1327,16 @@ public class WeaponController : MonoBehaviour
             // Fire from camera position
             rayOrigin = playerCamera.transform.position;
             rayDirection = playerCamera.transform.forward;
-
-            Debug.Log($"Firing from camera position: {rayOrigin}, direction: {rayDirection}");
         }
         else
         {
             // Fallback to weapon fire point
             rayOrigin = firePoint.position;
             rayDirection = firePoint.forward;
-
-            Debug.Log($"Firing from weapon position: {rayOrigin}, direction: {rayDirection}");
         }
 
         // Calculate bullet direction with accuracy
         Vector3 finalDirection = CalculateBulletDirection(rayDirection);
-
-        Debug.Log($"Final bullet direction with spread: {finalDirection}");
 
         // IMPROVED: Use RaycastAll to get ALL hits, not just the first one
         RaycastHit[] hits = Physics.RaycastAll(rayOrigin, finalDirection, weaponData.range, hitLayers);
@@ -615,8 +1350,6 @@ public class WeaponController : MonoBehaviour
             RaycastHit hit = hits[0];
 
             Debug.Log($"RAYCAST HIT: {hit.collider.name} at distance: {hit.distance:F2} meters");
-            Debug.Log($"Hit point: {hit.point}");
-            Debug.Log($"Hit normal: {hit.normal}");
 
             // Spawn impact effects
             SpawnImpactEffect(hit.point, hit.normal);
@@ -627,29 +1360,19 @@ public class WeaponController : MonoBehaviour
             // Check if we hit an enemy-like object even if no damage applied
             bool hitEnemy = damageApplied || IsEnemyObject(hit.collider.gameObject);
 
-            if (!damageApplied)
-            {
-                Debug.LogWarning($"No damage method found on {hit.collider.name}. Available components: {string.Join(", ", hit.collider.GetComponents<Component>().Select(c => c.GetType().Name))}");
-            }
-
             // Apply enhanced screen shake for enemy hits
             if (hitEnemy)
             {
                 ApplyEnemyHitShake();
             }
         }
-        else
-        {
-            Debug.Log($"RAYCAST MISS: No hit within range {weaponData.range} meters");
-        }
 
         // Debug ray in scene view - ALWAYS show this ray
         Debug.DrawRay(rayOrigin, finalDirection * weaponData.range, Color.red, 2f);
-        Debug.Log($"Debug ray drawn from {rayOrigin} in direction {finalDirection} for {weaponData.range} meters");
     }
 
     /// <summary>
-    /// IMPROVED: Apply damage to target with multiple detection methods - FIXED STACK OVERFLOW
+    /// IMPROVED: Apply damage to target with multiple detection methods
     /// </summary>
     private bool ApplyDamageToTarget(GameObject target)
     {
@@ -678,7 +1401,7 @@ public class WeaponController : MonoBehaviour
             {
                 damageable.TakeDamage(damage);
                 damageApplied = true;
-                Debug.Log($"Applied {damage} damage to {target.name} via IDamageable");
+                Debug.Log($"💥 Applied {damage} damage to {target.name} via IDamageable");
                 return true;
             }
             catch (System.Exception e)
@@ -687,33 +1410,24 @@ public class WeaponController : MonoBehaviour
             }
         }
 
-        // Method 2: Try common component names
-        string[] damageComponentNames = { "Health", "EnemyHealth", "PlayerHealth", "TargetHealth", "Damageable" };
-
-        foreach (string componentName in damageComponentNames)
+        // Method 2: Try Health component
+        Health health = target.GetComponent<Health>();
+        if (health != null)
         {
-            var healthComponent = target.GetComponent(componentName);
-            if (healthComponent != null)
+            try
             {
-                try
-                {
-                    var takeDamageMethod = healthComponent.GetType().GetMethod("TakeDamage", new System.Type[] { typeof(float) });
-                    if (takeDamageMethod != null)
-                    {
-                        takeDamageMethod.Invoke(healthComponent, new object[] { damage });
-                        damageApplied = true;
-                        Debug.Log($"Applied {damage} damage to {target.name} via {componentName} component");
-                        return true;
-                    }
-                }
-                catch (System.Exception e)
-                {
-                    Debug.LogWarning($"{componentName} component TakeDamage failed: {e.Message}");
-                }
+                health.TakeDamage(damage);
+                damageApplied = true;
+                Debug.Log($"💥 Applied {damage} damage to {target.name} via Health");
+                return true;
+            }
+            catch (System.Exception e)
+            {
+                Debug.LogWarning($"Health.TakeDamage failed: {e.Message}");
             }
         }
 
-        // Method 3: Generic reflection approach (before checking hierarchy)
+        // Method 3: Generic reflection approach
         try
         {
             var allComponents = target.GetComponents<MonoBehaviour>();
@@ -722,7 +1436,7 @@ public class WeaponController : MonoBehaviour
                 var methods = component.GetType().GetMethods(BindingFlags.Public | BindingFlags.Instance);
                 foreach (var method in methods)
                 {
-                    if (method.Name.ToLower().Contains("damage") || method.Name == "TakeDamage" || method.Name == "Damage" || method.Name == "ApplyDamage")
+                    if (method.Name.ToLower().Contains("damage") || method.Name == "TakeDamage")
                     {
                         var parameters = method.GetParameters();
                         if (parameters.Length == 1 && (parameters[0].ParameterType == typeof(float) || parameters[0].ParameterType == typeof(int)))
@@ -730,7 +1444,7 @@ public class WeaponController : MonoBehaviour
                             object damageValue = parameters[0].ParameterType == typeof(int) ? (int)damage : damage;
                             method.Invoke(component, new object[] { damageValue });
                             damageApplied = true;
-                            Debug.Log($"Applied {damage} damage to {target.name} via {component.GetType().Name}.{method.Name}");
+                            Debug.Log($"💥 Applied {damage} damage to {target.name} via {component.GetType().Name}.{method.Name}");
                             return true;
                         }
                     }
@@ -740,36 +1454,6 @@ public class WeaponController : MonoBehaviour
         catch (System.Exception e)
         {
             Debug.LogWarning($"Generic damage reflection failed: {e.Message}");
-        }
-
-        // Method 4: Check parent object (with recursion protection)
-        Transform parent = target.transform.parent;
-        if (parent != null && !visited.Contains(parent.gameObject))
-        {
-            bool parentDamage = ApplyDamageToTargetInternal(parent.gameObject, visited);
-            if (parentDamage)
-            {
-                Debug.Log($"Applied damage to parent object: {parent.name}");
-                return true;
-            }
-        }
-
-        // Method 5: Check immediate child objects only (limit recursion depth)
-        int childrenChecked = 0;
-        foreach (Transform child in target.transform)
-        {
-            if (childrenChecked >= 3) break; // Limit to 3 children to prevent excessive recursion
-
-            if (!visited.Contains(child.gameObject))
-            {
-                bool childDamage = ApplyDamageToTargetInternal(child.gameObject, visited);
-                if (childDamage)
-                {
-                    Debug.Log($"Applied damage to child object: {child.name}");
-                    return true;
-                }
-            }
-            childrenChecked++;
         }
 
         return damageApplied;
@@ -1145,181 +1829,168 @@ public class WeaponController : MonoBehaviour
         recoilCoroutine = null;
     }
 
-    #region Pump Shotgun Physics
     /// <summary>
-    /// Apply pump shotgun knockback physics - RAYCAST: Check what you're actually aiming at
+    /// Apply pump shotgun knockback physics
     /// </summary>
     private void ApplyPumpShotgunKnockback()
     {
         if (!weaponData.HasKnockback())
+        {
+            Debug.Log("No knockback configured for this weapon");
             return;
+        }
 
-        // Find the player's rigidbody for applying forces
+        Debug.Log($"🚀 APPLYING KNOCKBACK for {weaponData.weaponName}");
+        Debug.Log($"   Knockback Force: {weaponData.knockbackForce}");
+
+        // Find the player's rigidbody
         Rigidbody playerRb = GetPlayerRigidbody();
         if (playerRb == null)
         {
-            Debug.LogWarning("Cannot apply shotgun knockback: Player rigidbody not found");
+            Debug.LogError("❌ NO PLAYER RIGIDBODY FOUND! Add Rigidbody to your player!");
             return;
         }
 
-        // Find movement script
-        Movement playerMovement = playerRb.GetComponent<Movement>();
-        if (playerMovement == null)
-            playerMovement = playerRb.GetComponentInParent<Movement>();
+        Debug.Log($"✅ Found player rigidbody: {playerRb.name}");
 
-        // Calculate knockback direction (opposite of firing direction)
+        // Calculate knockback direction (opposite of camera forward)
         Vector3 fireDirection = playerCamera != null ? playerCamera.transform.forward : transform.forward;
         Vector3 knockbackDirection = -fireDirection;
 
-        // Calculate horizontal knockback (ignore Y component for pure horizontal push)
-        Vector3 horizontalKnockback = new Vector3(knockbackDirection.x, 0f, knockbackDirection.z).normalized;
+        Debug.Log($"Fire direction: {fireDirection}");
+        Debug.Log($"Knockback direction: {knockbackDirection}");
 
-        // IMPROVED RAYCAST: Better detection for straight down shots
-        bool aimingAtGround = false;
-        float rayDistance = 25f; // Increased distance for better detection
+        // MUCH STRONGER knockback force
+        float baseForce = weaponData.knockbackForce * 3f; // Triple the force!
+        Vector3 horizontalKnockback = new Vector3(knockbackDirection.x, 0f, knockbackDirection.z).normalized * baseForce;
+        Vector3 upwardKnockback = Vector3.up * (baseForce * 0.3f); // Add upward component
 
-        // Start raycast from camera position
-        Vector3 rayStart = playerCamera.transform.position;
+        Vector3 finalKnockback = horizontalKnockback + upwardKnockback;
 
-        if (Physics.Raycast(rayStart, fireDirection, out RaycastHit hit, rayDistance))
-        {
-            // Check if hit point is below player (indicating ground/floor)
-            float heightDifference = rayStart.y - hit.point.y;
+        Debug.Log($"Horizontal knockback: {horizontalKnockback}");
+        Debug.Log($"Upward knockback: {upwardKnockback}");
+        Debug.Log($"Final knockback: {finalKnockback} (magnitude: {finalKnockback.magnitude})");
 
-            // IMPROVED: More lenient ground detection
-            bool hitBelowPlayer = heightDifference > 0.1f; // Even small height differences count
-            bool surfaceIsFlat = Vector3.Dot(hit.normal, Vector3.up) > 0.1f; // More lenient surface angle
+        // Apply the force
+        playerRb.AddForce(finalKnockback, ForceMode.VelocityChange);
 
-            aimingAtGround = hitBelowPlayer && surfaceIsFlat;
+        Debug.Log($"✅ KNOCKBACK APPLIED! Player should move backward now.");
 
-            Debug.Log($"Raycast hit: {hit.collider.name}, Distance: {hit.distance:F2}, Height diff: {heightDifference:F2}, Surface normal: {Vector3.Dot(hit.normal, Vector3.up):F2}, Aiming at ground: {aimingAtGround}");
-        }
-        else
-        {
-            // FALLBACK: If raycast misses, check angle as backup for straight down shots
-            float angleToGround = Vector3.Angle(fireDirection, Vector3.down);
-            if (angleToGround <= weaponData.upwardBoostAngle)
-            {
-                aimingAtGround = true;
-                Debug.Log($"Raycast missed but angle check passed: {angleToGround:F1}° - treating as ground shot");
-            }
-            else
-            {
-                Debug.Log("Raycast missed - aiming at air/sky");
-            }
-        }
+        // Log player velocity after knockback for debugging
+        StartCoroutine(DebugPlayerVelocity(playerRb));
 
-        // Check if player is grounded (for air boost limitation)
-        bool isGrounded = playerMovement != null ? IsPlayerGrounded(playerMovement) : true;
-
-        // FIXED: Only allow ONE air boost per air time
-        bool canUseGroundBoost = aimingAtGround && (isGrounded || (playerMovement != null && !playerMovement.hasUsedAirBoost));
-
-        Vector3 finalVelocity;
-        float forceMultiplier = 1f;
-
-        if (canUseGroundBoost)
-        {
-            // ROCKET JUMP: Angle-based forces when aiming at ground
-            float angleToGround = Vector3.Angle(fireDirection, Vector3.down);
-            float downwardFactor = 1f - (angleToGround / weaponData.upwardBoostAngle); // 0 to 1 based on angle
-            forceMultiplier = 1f + (downwardFactor * downwardFactor * weaponData.maxDownwardForceMultiplier);
-
-            float scaledForce = weaponData.knockbackForce * 0.1f;
-
-            // Calculate upward component (stronger when aiming more straight down)
-            Vector3 upwardForce = Vector3.up * scaledForce * weaponData.upwardBoostMultiplier * forceMultiplier;
-
-            // Calculate horizontal component based on angle (more horizontal when aiming at angle)
-            float angleBasedHorizontalStrength = (angleToGround / weaponData.upwardBoostAngle); // 0 to 1
-            float finalHorizontalStrength = weaponData.baseHorizontalStrength * (0.5f + angleBasedHorizontalStrength * 1.5f); // 0.5x to 2.0x
-            Vector3 horizontalForce = horizontalKnockback * scaledForce * weaponData.upwardBoostMultiplier * finalHorizontalStrength;
-
-            // Combine both forces
-            finalVelocity = upwardForce + horizontalForce;
-
-            // Mark that air boost was used (if in air)
-            if (!isGrounded && playerMovement != null)
-            {
-                playerMovement.hasUsedAirBoost = true;
-                Debug.Log("Used ONE air boost - cannot use again until landing");
-            }
-
-            Debug.Log($"ROCKET JUMP (angle: {angleToGround:F1}°): Up={upwardForce.magnitude:F1}, Horizontal={horizontalForce.magnitude:F1}, Total={finalVelocity.magnitude:F1}");
-        }
-        else
-        {
-            // MUCH STRONGER FORCES: Very noticeable knockback when NOT aiming at ground
-            float scaledForce = weaponData.knockbackForce * 0.1f;
-
-            // Much stronger multiplier for non-ground shots
-            float strongMultiplier = 1.0f; // 100% of rocket jump strength - very noticeable!
-
-            if (aimingAtGround && playerMovement != null && playerMovement.hasUsedAirBoost)
-            {
-                // Trying to use air boost again - still decent
-                finalVelocity = knockbackDirection * scaledForce * 0.5f; // 50% strength
-                finalVelocity.y = scaledForce * 0.25f; // Good upward component
-                Debug.Log("Air boost already used - moderate knockback");
-            }
-            else
-            {
-                // Normal shot at enemies/air - MUCH stronger knockback
-                finalVelocity = knockbackDirection * scaledForce * strongMultiplier;
-                finalVelocity.y += scaledForce * (strongMultiplier * 0.5f); // Strong upward component
-                Debug.Log($"STRONG shot (not aiming at ground): {finalVelocity.magnitude:F1}");
-            }
-        }
-
-        // Apply knockback protection briefly
-        if (playerMovement != null)
-        {
-            playerMovement.OnKnockbackApplied(0.2f);
-        }
-
-        // Apply the knockback force
-        playerRb.AddForce(finalVelocity, ForceMode.VelocityChange);
-
-        Debug.Log($"Applied knockback - Force: {finalVelocity}, Magnitude: {finalVelocity.magnitude:F1}");
-
-        // Apply enhanced recoil to weapon for better feedback
+        // Apply weapon recoil for visual feedback
         ApplyWeaponKnockbackRecoil();
 
-        // Screen shake based on force (scale with actual force applied)
+        // Screen shake
         if (cameraShake != null)
         {
-            float shakeIntensity = weaponData.screenShakeIntensity * (finalVelocity.magnitude / (weaponData.knockbackForce * 0.1f));
+            float shakeIntensity = weaponData.screenShakeIntensity * 3f; // Stronger shake
             cameraShake.Shake(shakeIntensity, weaponData.screenShakeDuration);
         }
     }
 
-    /// <summary>
-    /// Check if player is grounded using the Movement component
-    /// </summary>
-    private bool IsPlayerGrounded(Movement playerMovement)
+    private System.Collections.IEnumerator DebugPlayerVelocity(Rigidbody playerRb)
     {
-        // Access the grounded state from the Movement component
-        var movementType = playerMovement.GetType();
-        var groundedField = movementType.GetField("grounded", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        yield return new WaitForFixedUpdate();
 
-        if (groundedField != null)
+        if (playerRb != null)
         {
-            return (bool)groundedField.GetValue(playerMovement);
-        }
+            Debug.Log($"Player velocity after knockback: {playerRb.linearVelocity}");
+            Debug.Log($"Velocity magnitude: {playerRb.linearVelocity.magnitude}");
 
-        // Fallback: assume grounded if we can't detect
-        return true;
+            if (playerRb.linearVelocity.magnitude < 1f)
+            {
+                Debug.LogWarning("⚠️ Player velocity is very low - knockback might not be working");
+                Debug.LogWarning("   Check: Player has Rigidbody, weapon is PumpShotgun type, knockbackForce > 0");
+            }
+            else
+            {
+                Debug.Log("✅ Knockback working - player is moving!");
+            }
+        }
     }
 
-    /// <summary>
-    /// Apply visual recoil to weapon for pump shotgun feedback
-    /// </summary>
+    private void ApplyWeaponKnockback()
+    {
+        if (!weaponData.HasKnockback())
+            return;
+
+        Debug.Log($"🚀 APPLYING KNOCKBACK: {weaponData.weaponName}");
+
+        // Find player rigidbody
+        Rigidbody playerRb = FindPlayerRigidbody();
+        if (playerRb == null)
+        {
+            Debug.LogError("❌ NO PLAYER RIGIDBODY! Add Rigidbody to player!");
+            return;
+        }
+
+        // Calculate knockback
+        Vector3 aimDirection = playerCamera.transform.forward;
+        Vector3 knockbackDirection = -aimDirection;
+
+        float force = weaponData.knockbackForce * 2f; // Double for visibility
+        Vector3 finalKnockback = knockbackDirection * force;
+        finalKnockback += Vector3.up * (force * 0.3f); // Upward component
+
+        Debug.Log($"Player rigidbody: {playerRb.name}");
+        Debug.Log($"Knockback force: {finalKnockback} (magnitude: {finalKnockback.magnitude})");
+
+        // Apply force
+        playerRb.AddForce(finalKnockback, ForceMode.VelocityChange);
+
+        Debug.Log("✅ Knockback applied!");
+
+        // Log result
+        StartCoroutine(LogKnockbackResult(playerRb));
+    }
+
+    private Rigidbody FindPlayerRigidbody()
+    {
+        // Method 1: Up hierarchy
+        Transform current = transform;
+        for (int i = 0; i < 10 && current != null; i++)
+        {
+            Rigidbody rb = current.GetComponent<Rigidbody>();
+            if (rb != null) return rb;
+            current = current.parent;
+        }
+
+        // Method 2: Player tag
+        GameObject player = GameObject.FindGameObjectWithTag("Player");
+        if (player != null)
+        {
+            return player.GetComponent<Rigidbody>();
+        }
+
+        // Method 3: Movement component
+        Movement movement = FindObjectOfType<Movement>();
+        if (movement != null)
+        {
+            return movement.GetComponent<Rigidbody>();
+        }
+
+        return null;
+    }
+
+    private System.Collections.IEnumerator LogKnockbackResult(Rigidbody rb)
+    {
+        yield return new WaitForFixedUpdate();
+        Debug.Log($"Player velocity after knockback: {rb.linearVelocity}");
+
+        if (rb.linearVelocity.magnitude < 1f)
+        {
+            Debug.LogWarning("⚠️ Low velocity - knockback might not be working");
+            Debug.LogWarning("Check: Player Rigidbody is not kinematic, has reasonable mass");
+        }
+    }
+
     private void ApplyWeaponKnockbackRecoil()
     {
         if (weaponData == null)
             return;
 
-        // Apply stronger recoil for pump shotgun
         if (recoilCoroutine != null)
         {
             StopCoroutine(recoilCoroutine);
@@ -1335,14 +2006,11 @@ public class WeaponController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Enhanced recoil animation for pump shotgun
-    /// </summary>
     private System.Collections.IEnumerator PumpShotgunRecoilCoroutine()
     {
         // Much stronger recoil for pump shotgun
-        float recoilStrength = 0.6f; // Double normal shotgun recoil
-        float recoilDuration = 0.35f; // Longer duration
+        float recoilStrength = 0.8f; // Very strong recoil
+        float recoilDuration = 0.4f; // Longer duration
 
         // Reduce recoil when aiming
         if (isAiming)
@@ -1358,7 +2026,9 @@ public class WeaponController : MonoBehaviour
             -1f                         // Strong backward movement
         ) * recoilStrength;
 
-        // More dramatic recoil animation
+        Debug.Log($"Weapon recoil direction: {recoilDirection}");
+
+        // More dramatic recoil animation for pump shotgun
         float elapsed = 0f;
         while (elapsed < recoilDuration)
         {
@@ -1384,6 +2054,71 @@ public class WeaponController : MonoBehaviour
         // Ensure we return to zero
         currentRecoilOffset = Vector3.zero;
         recoilCoroutine = null;
+
+        Debug.Log("Weapon recoil animation complete");
+    }
+
+    public void TestKnockbackNow()
+    {
+        if (weaponData == null)
+        {
+            Debug.LogError("No weapon data to test!");
+            return;
+        }
+
+        Debug.Log($"=== TESTING KNOCKBACK FOR {weaponData.weaponName} ===");
+        Debug.Log($"Weapon Type: {weaponData.weaponType}");
+        Debug.Log($"Has Knockback: {weaponData.HasKnockback()}");
+        Debug.Log($"Knockback Force: {weaponData.knockbackForce}");
+
+        if (weaponData.HasKnockback())
+        {
+            ApplyPumpShotgunKnockback();
+        }
+        else
+        {
+            Debug.LogWarning("This weapon doesn't have knockback enabled!");
+            Debug.LogWarning("Check: weaponType = PumpShotgun, knockbackForce > 0");
+        }
+    }
+
+    public void DebugPlayerRigidbody()
+    {
+        Debug.Log("=== PLAYER RIGIDBODY DEBUG ===");
+
+        Rigidbody playerRb = GetPlayerRigidbody();
+
+        if (playerRb != null)
+        {
+            Debug.Log($"✅ Player Rigidbody Found: {playerRb.name}");
+            Debug.Log($"   Mass: {playerRb.mass}");
+            Debug.Log($"   Linear Drag: {playerRb.linearDamping}");
+            Debug.Log($"   Angular Drag: {playerRb.angularDamping}");
+            Debug.Log($"   Use Gravity: {playerRb.useGravity}");
+            Debug.Log($"   Is Kinematic: {playerRb.isKinematic}");
+            Debug.Log($"   Current Velocity: {playerRb.linearVelocity}");
+
+            if (playerRb.isKinematic)
+            {
+                Debug.LogWarning("⚠️ Player rigidbody is KINEMATIC - knockback won't work!");
+                Debug.LogWarning("   Solution: Set 'Is Kinematic' to FALSE in player's Rigidbody");
+            }
+        }
+        else
+        {
+            Debug.LogError("❌ NO PLAYER RIGIDBODY FOUND!");
+            Debug.LogError("   Solution: Add Rigidbody component to your Player GameObject");
+
+            // List all rigidbodies in scene for debugging
+            Rigidbody[] allRigidbodies = FindObjectsOfType<Rigidbody>();
+            Debug.Log($"All Rigidbodies in scene: {allRigidbodies.Length}");
+            foreach (var rb in allRigidbodies)
+            {
+                Debug.Log($"   - {rb.name} (on {rb.gameObject.name})");
+            }
+        }
+
+        Debug.Log("=============================");
     }
 
     /// <summary>
@@ -1391,44 +2126,94 @@ public class WeaponController : MonoBehaviour
     /// </summary>
     private Rigidbody GetPlayerRigidbody()
     {
-        // Try to find rigidbody on player object
-        Transform current = transform;
+        Debug.Log("Searching for player rigidbody...");
 
-        // Search up the hierarchy for a rigidbody
-        while (current != null)
+        // Method 1: Search up the hierarchy from weapon
+        Transform current = transform;
+        int maxSearchDepth = 10; // Prevent infinite loops
+        int searchDepth = 0;
+
+        while (current != null && searchDepth < maxSearchDepth)
         {
             Rigidbody rb = current.GetComponent<Rigidbody>();
             if (rb != null)
+            {
+                Debug.Log($"Found rigidbody on {current.name} (search depth: {searchDepth})");
                 return rb;
+            }
 
             current = current.parent;
+            searchDepth++;
         }
 
-        // Try to find by tag
+        // Method 2: Find by Player tag
         GameObject player = GameObject.FindGameObjectWithTag("Player");
         if (player != null)
         {
-            return player.GetComponent<Rigidbody>();
+            Rigidbody rb = player.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                Debug.Log($"Found rigidbody via Player tag: {player.name}");
+                return rb;
+            }
+            else
+            {
+                Debug.LogError($"Player GameObject '{player.name}' found but has no Rigidbody!");
+            }
         }
 
-        // Last resort: find any Movement component and get its rigidbody
+        // Method 3: Find Movement component and get its rigidbody
         Movement playerMovement = FindObjectOfType<Movement>();
         if (playerMovement != null)
         {
-            return playerMovement.GetComponent<Rigidbody>();
+            Rigidbody rb = playerMovement.GetComponent<Rigidbody>();
+            if (rb != null)
+            {
+                Debug.Log($"Found rigidbody via Movement component: {playerMovement.name}");
+                return rb;
+            }
         }
+
+        // Method 4: Find any rigidbody in scene (last resort)
+        Rigidbody[] allRigidbodies = FindObjectsOfType<Rigidbody>();
+        foreach (var rb in allRigidbodies)
+        {
+            // Skip weapon rigidbodies and other objects
+            if (rb.name.ToLower().Contains("player") || rb.GetComponent<Movement>() != null)
+            {
+                Debug.Log($"Found rigidbody (last resort): {rb.name}");
+                return rb;
+            }
+        }
+
+        Debug.LogError("❌ NO RIGIDBODY FOUND! Your player MUST have a Rigidbody component for knockback to work!");
+        Debug.LogError("   Solution: Select your Player GameObject and Add Component → Physics → Rigidbody");
 
         return null;
     }
 
     #endregion
 
-    /// <summary>
-    /// Check if a layer is in a layer mask
-    /// </summary>
-    private bool IsInLayerMask(int layer, LayerMask layerMask)
+    #region Debug Methods
+
+    [ContextMenu("Debug Weapon State")]
+    public void DebugWeaponState()
     {
-        return (layerMask.value & (1 << layer)) != 0;
+        Debug.Log("=== WEAPON DEBUG INFO ===");
+        Debug.Log($"Weapon Name: {(weaponData != null ? weaponData.weaponName : "NULL")}");
+        Debug.Log($"Weapon Type: {(weaponData != null ? weaponData.weaponType.ToString() : "NULL")}");
+        Debug.Log($"Firing Mode: {(weaponData != null ? weaponData.firingMode.ToString() : "NULL")}");
+        Debug.Log($"Is Melee: {(weaponData != null ? weaponData.IsMeleeWeapon() : false)}");
+        Debug.Log($"Is Firing: {isFiring}");
+        Debug.Log($"Current Ammo: {currentAmmo}");
+        Debug.Log($"Reserve Ammo: {reserveAmmo}");
+        Debug.Log($"Has MeleeController: {meleeController != null}");
+        if (meleeController != null && weaponData != null && weaponData.IsMeleeWeapon())
+        {
+            Debug.Log($"Attack Point: {(meleeController.attackPoint != null ? meleeController.attackPoint.name : "NULL")}");
+            Debug.Log($"Trail Point: {(meleeController.trailPoint != null ? meleeController.trailPoint.name : "NULL")}");
+        }
+        Debug.Log("========================");
     }
 
     #endregion
@@ -1453,6 +2238,23 @@ public class WeaponController : MonoBehaviour
         {
             Gizmos.color = Color.yellow;
             Gizmos.DrawWireSphere(muzzlePoint.position, 0.05f);
+        }
+
+        // Draw melee attack points
+        if (weaponData.IsMeleeWeapon() && meleeController != null)
+        {
+            if (meleeController.attackPoint != null)
+            {
+                Gizmos.color = Color.green;
+                Gizmos.DrawWireSphere(meleeController.attackPoint.position, 0.15f);
+                Gizmos.DrawWireSphere(meleeController.attackPoint.position, weaponData.meleeRange);
+            }
+
+            if (meleeController.trailPoint != null)
+            {
+                Gizmos.color = Color.blue;
+                Gizmos.DrawWireSphere(meleeController.trailPoint.position, 0.1f);
+            }
         }
     }
 

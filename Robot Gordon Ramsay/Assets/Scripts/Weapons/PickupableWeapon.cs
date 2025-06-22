@@ -422,10 +422,26 @@ public class PickupableWeapon : MonoBehaviour
     /// </summary>
     private void UpdateBobbing()
     {
-        // Use Mathf.Abs to make sine wave only positive (0 to 1) so it only floats upward
-        float yOffset = Mathf.Abs(Mathf.Sin(Time.time * bobbingSpeed)) * bobbingHeight;
-        float newY = startPosition.y + yOffset;
-        transform.position = new Vector3(startPosition.x, newY, startPosition.z);
+        if (!enableBobbing) return;
+
+        // FIXED: Check ground distance to prevent clipping
+        float groundCheckDistance = 0.5f;
+        bool isNearGround = Physics.Raycast(transform.position, Vector3.down, groundCheckDistance);
+
+        if (isNearGround)
+        {
+            // Only bob upward when near ground
+            float yOffset = Mathf.Max(0f, Mathf.Sin(Time.time * bobbingSpeed) * bobbingHeight);
+            float newY = startPosition.y + yOffset;
+            transform.position = new Vector3(startPosition.x, newY, startPosition.z);
+        }
+        else
+        {
+            // Normal bobbing when floating in air
+            float yOffset = Mathf.Sin(Time.time * bobbingSpeed) * bobbingHeight;
+            float newY = startPosition.y + yOffset;
+            transform.position = new Vector3(startPosition.x, newY, startPosition.z);
+        }
     }
 
     /// <summary>
@@ -535,22 +551,48 @@ public class PickupableWeapon : MonoBehaviour
         isPhysicsActive = true;
         isFloating = false;
 
-        // Apply drop velocity if provided
-        if (rb != null && dropVelocity != Vector3.zero)
+        // IMPROVED: Better rigidbody setup
+        if (rb != null)
         {
             rb.isKinematic = false;
-            rb.AddForce(dropVelocity, ForceMode.Impulse);
+            rb.useGravity = true;
+            rb.mass = 2f; // Reasonable weight
+            rb.linearDamping = 0.8f; // Higher damping to settle faster
+            rb.angularDamping = 0.9f; // Reduce spinning
+
+            // Apply drop velocity if provided
+            if (dropVelocity != Vector3.zero)
+            {
+                rb.AddForce(dropVelocity, ForceMode.Impulse);
+            }
+
+            // PREVENT GROUND CLIPPING: Add small upward force
+            rb.AddForce(Vector3.up * 2f, ForceMode.Impulse);
         }
 
-        // IMPORTANT: Re-setup physics layers and collision ignoring for newly dropped weapon
+        // IMPROVED: Better collider setup
+        Collider[] colliders = GetComponentsInChildren<Collider>();
+        foreach (Collider col in colliders)
+        {
+            col.enabled = true;
+            // PREVENT GROUND CLIPPING: Ensure collider has minimum bounds
+            if (col is BoxCollider boxCol && boxCol.size.y < 0.1f)
+            {
+                Vector3 size = boxCol.size;
+                size.y = 0.2f; // Minimum height
+                boxCol.size = size;
+            }
+        }
+
+        // Setup physics layers and collision ignoring
         SetupPhysicsLayers();
 
         // Schedule physics-to-floating transition
-        CancelInvoke(); // Cancel any existing invokes
+        CancelInvoke();
         Invoke(nameof(BeginFloatingTransition), physicsSettleTime);
 
         OnWeaponDropped?.Invoke();
-        Debug.Log($"Weapon {weaponData?.weaponName} dropped with physics and collision ignoring re-setup");
+        Debug.Log($"Weapon {weaponData?.weaponName} dropped with improved anti-clipping physics");
     }
 
     /// <summary>

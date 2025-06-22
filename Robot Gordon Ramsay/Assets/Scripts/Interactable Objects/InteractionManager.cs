@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 /// Manages mouse interactions with InteractableComponent objects
 /// Handles raycasting, hovering, and clicking on interactable objects
 /// Attach this to your player GameObject or main camera
+/// FIXED: Uses New Input System properly
 /// </summary>
 public class InteractionManager : MonoBehaviour
 {
@@ -89,6 +90,7 @@ public class InteractionManager : MonoBehaviour
         }
         else
         {
+            // Legacy fallback
             mouseDown = Input.GetMouseButtonDown(0);
             mouseUp = Input.GetMouseButtonUp(0);
         }
@@ -129,10 +131,18 @@ public class InteractionManager : MonoBehaviour
     /// </summary>
     private void HandleInteractionDetection()
     {
-        // Get mouse position
-        Vector2 mousePos = useNewInputSystem && mouse != null ?
-            mouse.position.ReadValue() :
-            (Vector2)Input.mousePosition;
+        // Get mouse position using NEW INPUT SYSTEM
+        Vector2 mousePos = Vector2.zero;
+
+        if (useNewInputSystem && mouse != null)
+        {
+            mousePos = mouse.position.ReadValue();
+        }
+        else
+        {
+            // Legacy fallback - but only if not using new input system
+            mousePos = (Vector2)Input.mousePosition;
+        }
 
         // Cast ray from camera through mouse position
         Ray ray = interactionCamera.ScreenPointToRay(mousePos);
@@ -206,21 +216,35 @@ public class InteractionManager : MonoBehaviour
 
     #endregion
 
-    #region Debug Gizmos
+    #region Debug Gizmos - FIXED FOR NEW INPUT SYSTEM
 
     void OnDrawGizmos()
     {
         if (interactionCamera == null)
             return;
 
-        // Get mouse position for debug ray
+        // Get mouse position for debug ray - FIXED
         Vector2 mousePos = Vector2.zero;
 
         if (Application.isPlaying)
         {
-            mousePos = useNewInputSystem && mouse != null ?
-                mouse.position.ReadValue() :
-                (Vector2)Input.mousePosition;
+            if (useNewInputSystem && mouse != null)
+            {
+                mousePos = mouse.position.ReadValue();
+            }
+            else
+            {
+                // Only use legacy input if explicitly disabled new input system
+                if (!useNewInputSystem)
+                {
+                    mousePos = (Vector2)Input.mousePosition;
+                }
+                else
+                {
+                    // Show center ray when new input system is enabled but mouse not available
+                    mousePos = new Vector2(Screen.width * 0.5f, Screen.height * 0.5f);
+                }
+            }
         }
         else
         {
