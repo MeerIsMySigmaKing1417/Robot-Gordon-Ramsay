@@ -1,6 +1,9 @@
 using System;
+using Unity.Cinemachine;
+using Unity.Mathematics;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 public class PlayerMovement : MonoBehaviour
@@ -19,9 +22,24 @@ public class PlayerMovement : MonoBehaviour
     private Vector2 lookInput = Vector2.zero;
 
     [Header("Camera Settings")]
+    public CinemachineCamera cinemachineCam;
     [SerializeField] private float mouseSensitivityX = 0.5f;
     [SerializeField] private float mouseSensitivityY = 0.5f;
+    [Range(0f, 100f)]
+    [SerializeField] private float normalFOV = 60f; // Normal field of view
+    [Range(0f, 100f)]
+    [SerializeField] private float crouchFOV = 50f; // Field of view when crouching
+    [Range(0f, 100f)]
+    [SerializeField] private float sprintFOV = 70f; // Field of view when sprinting
     private float xRotation = 0f;
+    private float currentFOV;
+
+    [Header("Bobbing Settings")]
+    [SerializeField] private float bobFrequency = 2f;
+    [SerializeField] private float bobHorizontalAmplitude = 0.1f;
+    [SerializeField] private float bobVerticalAmplitude = 0.1f;
+    private CinemachineBasicMultiChannelPerlin noise;
+    private float timer = 0f;
 
     [Header("Movement")]
     public LayerMask groundLayerMask = -1;
@@ -37,6 +55,7 @@ public class PlayerMovement : MonoBehaviour
     private float crouchHeight = 0.5f; // Height when crouching
     private Vector3 intitialCameraPosition;
     private float currentHeight;
+    private bool isMovingBackward = false;
 
     [Header("Jump Settings")]
     [SerializeField] private float jumpForce = 5f;
@@ -51,6 +70,7 @@ public class PlayerMovement : MonoBehaviour
         inputActions = new PlayerInputActions();
         standHeight = currentHeight = transform.localScale.y; // Store the initial height of the player
         intitialCameraPosition = playerCam.localPosition; // Store the initial camera position
+        noise = cinemachineCam.GetComponent<CinemachineBasicMultiChannelPerlin>();
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -95,6 +115,7 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         RotatePlayerTowardsCamera();
+        ViewBobbing();
     }
 
     private void FixedUpdate()
@@ -111,7 +132,7 @@ public class PlayerMovement : MonoBehaviour
         {
             // Check if moving backwards relative to player's facing direction
             Vector3 worldMoveDirection = transform.TransformDirection(moveDirection);
-            bool isMovingBackward = Vector3.Dot(worldMoveDirection.normalized, transform.forward) < -0.1f;
+            isMovingBackward = Vector3.Dot(worldMoveDirection.normalized, transform.forward) < -0.1f;
 
             float targetSpeed;
             if (crouchInput)
@@ -223,7 +244,34 @@ public class PlayerMovement : MonoBehaviour
 
         // Smooth horizontal rotation too
         transform.Rotate(Vector3.up * mouseX);
+
+        var targetFOV = crouchInput ? crouchFOV : sprintInput && moveInput.magnitude > 0.1f && !isMovingBackward ? sprintFOV : normalFOV;
+
+        currentFOV = Mathf.Lerp(currentFOV, targetFOV, Time.deltaTime * 5f);
+
+        cinemachineCam.Lens.FieldOfView = currentFOV;
     }
+
+    private void ViewBobbing()
+    {
+        bool isMoving = moveInput.magnitude > 0.1f && isGrounded;
+
+        if (isMoving)
+        {
+            timer += Time.deltaTime * bobFrequency;
+
+            // Apply bobbing through amplitude and frequency
+            noise.AmplitudeGain = bobVerticalAmplitude;
+            noise.FrequencyGain = bobFrequency;
+        }
+        else
+        {
+            // Gradually reduce bobbing when not moving
+            noise.AmplitudeGain = Mathf.Lerp(noise.AmplitudeGain, 0f, Time.deltaTime * 5f);
+            noise.FrequencyGain = Mathf.Lerp(noise.FrequencyGain, 0f, Time.deltaTime * 5f);
+        }
+    }
+
 
     private void RotatePlayerTowardsCamera()
     {
